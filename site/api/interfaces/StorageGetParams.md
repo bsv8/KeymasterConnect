@@ -1,0 +1,53 @@
+[@keymaster/connect](../index.md) / StorageGetParams
+
+# Interface: StorageGetParams
+
+## Properties overview
+
+| Property | Type | Required | Description |
+| :--- | :--- | :---: | :--- |
+| [`connectSessionId`](#connectsessionid) | `string` | Yes | Connect 会话 ID。 |
+| [`path`](#path) | `string` | Yes | 文件路径。 |
+| [`offset?`](#offset) | `number` | No | 起始偏移（字节）。 |
+| [`length?`](#length) | `number` | No | 读取长度（字节）。 |
+| [`ifMatch?`](#ifmatch) | `string` | No | 期望的抽象版本标签。 |
+
+## Properties
+
+### connectSessionId
+
+> **connectSessionId**: `string`
+
+Connect 会话 ID。
+
+***
+
+### path
+
+> **path**: `string`
+
+文件路径。
+
+***
+
+### offset?
+
+> `optional` **offset?**: `number`
+
+起始偏移（字节）。
+
+***
+
+### length?
+
+> `optional` **length?**: `number`
+
+读取长度（字节）。
+
+***
+
+### ifMatch?
+
+> `optional` **ifMatch?**: `string`
+
+期望的抽象版本标签。
