@@ -5,8 +5,8 @@
 identity.get 请求参数。
 
 设计缘由（施工单 2026-06-28 002 硬切换）：
-  - `connectSessionId` 是**强制**输入字段；所有外部业务方法都属于某个
-    `connectSessionId`（仅 `connect.login` 例外）。缺该字段直接
+  - `walletPublicKeyHex` 是**强制**输入字段；所有外部业务方法都属于某个
+    `walletPublicKeyHex`（仅 `connect.login` 例外）。缺该字段直接
     `invalid_request` 拒绝。
   - `identity.get` 不再是"推荐登录入口"；登录走 `connect.login`。
     `identity.get` 是"会话内身份断言能力"——`subject` 取自 session 绑
@@ -21,7 +21,7 @@ identity.get 请求参数。
 | [`exp`](#exp) | `number` | Yes | 过期时间（unix seconds）；必须严格大于 iat。 |
 | [`text`](#text) | `string` | Yes | 人类可读确认文案。 |
 | [`claims?`](#claims) | `string`[] | No | 请求索要的 claim 名列表。 |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | 由 `connect.login` 返回的 sessionId。 |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | 由 `connect.login` 返回的钱包公钥。 |
 
 ## Properties
 
@@ -67,9 +67,9 @@ identity.get 请求参数。
 
 ***
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
-由 `connect.login` 返回的 sessionId。**必填**。
-service 通过此 id 找到绑定 key，不允许 fallback 到 active key。
+由 `connect.login` 返回的钱包公钥。**必填**。
+service 通过公钥与来源 找到绑定 key，不允许 fallback 到 active key。

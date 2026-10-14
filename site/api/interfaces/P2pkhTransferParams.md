@@ -17,7 +17,7 @@
     回。
   - `assetId` 可选；缺省 `bsv-mainnet`。`bsv-testnet` 需要 Keymaster
     当前身份属于测试网。
-  - `connectSessionId` 是**强制**输入字段（施工单 2026-06-28 002 硬切换）：
+  - `walletPublicKeyHex` 是**强制**输入字段（施工单 2026-06-28 002 硬切换）：
     资金 owner 取自 session 绑定 owner，**不**读取全局 active key。
     旧 session 失效时直接 fail-fast，不再静默 fallback 到 active key。
 
@@ -30,7 +30,7 @@
 | [`amountSatoshis`](#amountsatoshis) | `number` | Yes | 正整数 satoshis。 |
 | [`feeRateSatoshisPerKb?`](#feeratesatoshisperkb) | `number` | No | 可选 fee rate（sat/kB）。 |
 | [`assetId?`](#assetid) | [`P2pkhTransferAssetId`](../type-aliases/P2pkhTransferAssetId.md) | No | 可选资产；缺省当前 NetworkIdentity 的网络资产。 |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | 由 `connect.login` 返回的 sessionId。 |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | 由 `connect.login` 返回的钱包公钥。 |
 
 ## Properties
 
@@ -74,9 +74,9 @@
 
 ***
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
-由 `connect.login` 返回的 sessionId。**必填**。
-service 通过此 id 找到绑定 key，不允许 fallback 到 active key。
+由 `connect.login` 返回的钱包公钥。**必填**。
+service 通过公钥与来源 找到绑定 key，不允许 fallback 到 active key。

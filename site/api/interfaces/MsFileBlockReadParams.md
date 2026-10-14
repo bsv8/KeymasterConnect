@@ -6,16 +6,16 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | — |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | — |
 | [`sourceId`](#sourceid) | `string` | Yes | 要读取的来源路由标识。 |
 | [`seedHashHex`](#seedhashhex) | `string` | Yes | Block 所属 Seed；remote wire 不发送该字段。 |
 | [`blockHashHex`](#blockhashhex) | `string` | Yes | — |
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
 ***
 

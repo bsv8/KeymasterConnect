@@ -8,12 +8,12 @@ Connect App 的 `price.get` 入参。
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | 已验证 Connect session 编号。 |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | 钱包压缩公钥；网络由消息外层 NetworkIdentity 指定。 |
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
-已验证 Connect session 编号。
+钱包压缩公钥；网络由消息外层 NetworkIdentity 指定。

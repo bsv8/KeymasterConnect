@@ -5,18 +5,19 @@ pageClass: capability-map-page
 # 能力索引
 
 所有方法都由 [`KeymasterConnectClient`](/api/classes/KeymasterConnectClient) 提供。
-除 `connect.login` 和 `connect.launch` 外，请求都必须属于已有 `connectSessionId`。
+客户端必须配置完整 `NetworkIdentity`。除 `connect.login` 和 `connect.launch` 外，业务参数携带
+`walletPublicKeyHex`；它与消息外层网络身份及实际来源一起定位钱包，不能越过业务确认或验签。
 
 | 方法 | 中文用途 |
 | --- | --- |
-| `connect.login` | 用户选择 Owner 后创建持久会话 |
-| `connect.resume` | 为已有会话恢复短期解锁环境 |
-| `connect.logout` | 撤销会话及其订阅和授权 |
+| `connect.login` | 用户确认钱包身份后建立连接 |
+| `connect.resume` | 按完整钱包身份恢复连接，缺缓存时重建缺省上下文 |
+| `connect.logout` | 撤销当前来源的本地连接、订阅和运行授权 |
 | `connect.launch` | 使用 appView 一次性令牌建立会话 |
 | `identity.get` | 返回有有效期、接收方和签名的身份断言 |
 | `intent.sign` | 在明确用户意图下签署 App 提供的字节 |
-| `cipher.encrypt` / `cipher.decrypt` | 在当前 Owner 和精确 origin 下加解密二进制内容 |
-| `p2pkh.transfer` | 请求受控 P2PKH 转账；`assetId` 缺省 `bsv-mainnet`，`bsv-testnet` 需用户在 Keymaster 设置里开启 |
+| `cipher.encrypt` / `cipher.decrypt` | 在钱包网络、Owner 和精确 origin 下加解密二进制内容 |
+| `p2pkh.transfer` | 请求受控 P2PKH 转账；`assetId` 缺省当前网络的资产，跨网络请求拒绝 |
 | `payment.channel.register` | 注册 App 支付用途，取得付款必填的 channelId；不授予免确认额度 |
 | `channel.publish` | 向精确频道发布已签名 JSON |
 | `channel.subscription_set` | 替换当前会话贡献的精确订阅集合 |
@@ -25,13 +26,12 @@ pageClass: capability-map-page
 | `storage.list` | 列出 App 隔离命名空间中的目录和对象 |
 | `storage.directory.create/delete` | 创建或删除目录标记 |
 | `storage.put/get/delete` | 写入、读取或删除对象 |
-| `storage.upload.begin/part/complete/abort` | 管理 multipart（分片）上传 |
 | `msfile.stat` | 查询内容所在 Supplier 和报价 |
 | `msfile.seed.read` / `msfile.block.read` | 读取并校验 Seed 或 Block |
 
 ## 公共调用选项
 
-付款前调用 `registerPaymentChannel({ connectSessionId, channelName: "checkout", paymentType: "p2pkh" })`，
+付款前调用 `registerPaymentChannel({ walletPublicKeyHex, channelName: "checkout", paymentType: "p2pkh" })`，
 把返回的 `channelId` 传给每次 `p2pkhTransfer`。相同 App、名称、用途及网络重复注册得到同一编号。
 用户在钱包设置单笔额度和一次 App 连接的累计额度；超额由软件弹窗或设备确认。
 缺 channelId 会明确拒绝，不由 Keymaster 补默认值。恢复同一连接不重置已支出。
@@ -64,5 +64,6 @@ Keymaster 的 BSV 价格设置决定（服务器、交易所、交易对），Ap
 
 ## 身份要求
 
-Storage 和 MSFile 需要已验证 App 身份及相应 requirement（所需能力声明）。App 不能指定
+Storage 和 MSFile 需要已验证 App 身份及相应 requirement（所需能力声明）。本地缓存重置后，可在
+`resume({ walletPublicKeyHex, appIdentity })` 中重新验证已有 proof，见[会话](/concepts/sessions)。App 不能指定
 Supplier、桶、物理路径、凭据、私钥或付款额度。

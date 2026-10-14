@@ -10,14 +10,14 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | — |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | — |
 | [`revokedAt`](#revokedat) | `number` | Yes | 吊销时间（unix milliseconds）。 |
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
 ***
 

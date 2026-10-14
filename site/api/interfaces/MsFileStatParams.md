@@ -6,14 +6,14 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | — |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | — |
 | [`seedHashHex`](#seedhashhex) | `string` | Yes | — |
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
 ***
 

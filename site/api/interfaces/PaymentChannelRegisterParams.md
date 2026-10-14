@@ -8,16 +8,16 @@ App 注册自身支付用途；owner 始终取已连接会话的 origin，不能
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | — |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | — |
 | [`channelName`](#channelname) | `string` | Yes | — |
 | [`paymentType`](#paymenttype) | `"p2pkh"` \| `"feepool.connect"` | Yes | — |
 | [`assetId?`](#assetid) | [`P2pkhTransferAssetId`](../type-aliases/P2pkhTransferAssetId.md) | No | — |
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
 ***
 

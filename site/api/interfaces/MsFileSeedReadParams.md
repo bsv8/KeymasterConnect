@@ -6,15 +6,15 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | — |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | — |
 | [`sourceId`](#sourceid) | `string` | Yes | 要读取的来源路由标识。 |
 | [`seedHashHex`](#seedhashhex) | `string` | Yes | — |
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
 ***
 

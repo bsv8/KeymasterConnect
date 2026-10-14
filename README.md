@@ -8,6 +8,9 @@
 - [错误处理](site/guide/errors.md)
 - [发布说明](site/release-notes.md)
 
+客户端按完整 `{ bsvNetwork, publicKeyHex }` 定位钱包，业务参数使用 `walletPublicKeyHex`。
+旧 `connectSessionId` 已移除，更新接入代码前请阅读[发布说明](site/release-notes.md)。
+
 ## 安装、构建与预览
 
 使用 Node.js 22 和 pnpm 11.5.1，在本仓库根目录执行：

@@ -4,21 +4,29 @@
 
 `connect.resume` 请求参数。
 
-设计缘由：resume 必须显式传入 sessionId；service 在执行时按
-`event.origin` + sessionId 查 session 记录。sessionId 不在 params
-里时直接 invalid_request。
+resume 显式传入钱包公钥；本地记录为空时按当前 Key 重建缺省连接。
+可重新验证外部 App proof，不恢复已被重置的本地设置。
 
 ## Properties overview
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | 由 `connect.login` 返回的 sessionId。 |
+| [`appIdentity?`](#appidentity) | [`AppIdentityProofV1`](AppIdentityProofV1.md) | No | 本地数据重置后重新验证已有发行人签名 proof。 |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | 由 `connect.login` 返回的钱包公钥。 |
 
 ## Properties
 
-### connectSessionId
+### appIdentity?
 
-> **connectSessionId**: `string`
+> `optional` **appIdentity?**: [`AppIdentityProofV1`](AppIdentityProofV1.md)
 
-由 `connect.login` 返回的 sessionId。
-caller 持 sessionId，popup 持有 session 真值与 unlock runtime。
+本地数据重置后重新验证已有发行人签名 proof。
+
+***
+
+### walletPublicKeyHex
+
+> **walletPublicKeyHex**: `string`
+
+由 `connect.login` 返回的钱包公钥。
+caller 持公钥，popup 的运行句柄独立受会话世代约束。

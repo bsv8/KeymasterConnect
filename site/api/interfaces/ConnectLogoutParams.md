@@ -4,17 +4,16 @@
 
 `connect.logout` 请求参数。
 
-设计缘由：logout 只需要 sessionId；service 在执行时按 event.origin + sessionId
-找到对应记录并吊销。
+logout 按钱包公钥和实际来源撤销本地连接。
 
 ## Properties overview
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | — |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | — |
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`

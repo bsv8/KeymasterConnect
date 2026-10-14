@@ -6,17 +6,17 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | Connect 会话 ID。 |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | 钱包压缩公钥；与消息外层网络身份及实际来源一起定位连接。 |
 | [`path`](#path) | `string` | Yes | 目录路径。 |
 | [`overwrite?`](#overwrite) | `boolean` | No | 是否允许覆盖已有 marker。 |
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
-Connect 会话 ID。
+钱包压缩公钥；与消息外层网络身份及实际来源一起定位连接。
 
 ***
 

@@ -4,9 +4,7 @@
 
 `connect.login` 成功结果。
 
-设计缘由：返回 sessionId + owner + claimsSnapshot 三元组，caller 把
-sessionId 持久化在本地；后续 connect.resume / 业务方法都用这个 sessionId
-找回绑定关系。
+返回公钥与 claims 快照；后续请求复用公钥、网络及浏览器实际来源定位身份。
 
 关键（施工单 2026-06-28 002 硬切换 + 硬切换 002 收尾）：**不**再返回
 `ownerKeyId`。owner 唯一真值 = `ownerPublicKeyHex`；vault 不再保留
@@ -17,7 +15,7 @@ sessionId 持久化在本地；后续 connect.resume / 业务方法都用这个 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
 | [`networkIdentity`](#networkidentity) | [`NetworkIdentity`](NetworkIdentity.md) | Yes | — |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | 持久化 sessionId；caller 必须存本地。 |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | 钱包压缩公钥；后续请求用它定位身份。 |
 | [`ownerPublicKeyHex`](#ownerpublickeyhex) | `string` | Yes | 绑定 key 的压缩公钥 hex；与 session 记录内字段一致。 |
 | [`resolvedClaims`](#resolvedclaims) | `Record`\<`string`, [`ResolvedClaimValue`](../type-aliases/ResolvedClaimValue.md)\> | Yes | 本次 login 时一次解析的 claims 真值快照。 |
 | [`resolvedAt`](#resolvedat) | `number` | Yes | 本次解析时间（unix milliseconds）。 |
@@ -31,11 +29,11 @@ sessionId 持久化在本地；后续 connect.resume / 业务方法都用这个 
 
 ***
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
-持久化 sessionId；caller 必须存本地。
+钱包压缩公钥；后续请求用它定位身份。
 
 ***
 

@@ -64,16 +64,16 @@ Calls `connect.login` to create a persistent Connect session.
 
 ### resume()
 
-> **resume**(`connectSessionId`, `options?`): `Promise`\<[`ConnectResumeResult`](../interfaces/ConnectResumeResult.md)\>
+> **resume**(`identity`, `options?`): `Promise`\<[`ConnectResumeResult`](../interfaces/ConnectResumeResult.md)\>
 
 Calls `connect.resume` to restore the unlock runtime for a persistent
 session.
 
 #### Parameters
 
-##### connectSessionId
+##### identity
 
-`string`
+`string` \| [`ConnectResumeParams`](../interfaces/ConnectResumeParams.md)
 
 ##### options?
 
@@ -87,13 +87,13 @@ session.
 
 ### logout()
 
-> **logout**(`connectSessionId`, `options?`): `Promise`\<[`ConnectLogoutResult`](../interfaces/ConnectLogoutResult.md)\>
+> **logout**(`walletPublicKeyHex`, `options?`): `Promise`\<[`ConnectLogoutResult`](../interfaces/ConnectLogoutResult.md)\>
 
 Calls `connect.logout` to revoke a persistent Connect session.
 
 #### Parameters
 
-##### connectSessionId
+##### walletPublicKeyHex
 
 `string`
 
@@ -296,7 +296,7 @@ messages arrive as `channel.message_received` events.
 
 ## Storage
 
-Manage app-scoped directories, objects, and multipart uploads.
+Manage app-scoped directories and objects.
 
 ### storageList()
 

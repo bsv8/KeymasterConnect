@@ -9,7 +9,7 @@
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
 | [`networkIdentity`](#networkidentity) | [`NetworkIdentity`](NetworkIdentity.md) | Yes | — |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | — |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | — |
 | [`ownerPublicKeyHex`](#ownerpublickeyhex) | `string` | Yes | — |
 | [`resolvedClaims`](#resolvedclaims) | `Record`\<`string`, [`ResolvedClaimValue`](../type-aliases/ResolvedClaimValue.md)\> | Yes | — |
 | [`resolvedAt`](#resolvedat) | `number` | Yes | — |
@@ -23,9 +23,9 @@
 
 ***
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
 ***
 

@@ -6,7 +6,7 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | Connect 会话 ID。 |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | 钱包压缩公钥；与消息外层网络身份及实际来源一起定位连接。 |
 | [`path`](#path) | `string` | Yes | 文件路径。 |
 | [`content`](#content) | [`BinaryField`](BinaryField.md) | Yes | 二进制文件内容。 |
 | [`contentType?`](#contenttype) | `string` | No | MIME 类型。 |
@@ -14,11 +14,11 @@
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
-Connect 会话 ID。
+钱包压缩公钥；与消息外层网络身份及实际来源一起定位连接。
 
 ***
 

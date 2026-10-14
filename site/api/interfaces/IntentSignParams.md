@@ -5,7 +5,7 @@
 intent.sign 请求参数。
 
 设计缘由（施工单 2026-06-28 002 硬切换）：
-  - `connectSessionId` 是**强制**输入字段；签名主体公钥取自 session
+  - `walletPublicKeyHex` 是**强制**输入字段；签名主体公钥取自 session
     绑定的 owner，不再读取钱包全局 active key。
   - 旧叙事"登录场景推荐 identity.get"已废弃；登录走 `connect.login`。
 
@@ -19,7 +19,7 @@ intent.sign 请求参数。
 | [`text`](#text) | `string` | Yes | 人类可读确认文案。 |
 | [`contentType`](#contenttype) | `string` | Yes | 调用方自定义的内容类型。 |
 | [`content`](#content) | [`BinaryField`](BinaryField.md) | Yes | 调用方准备好的最终二进制内容。 |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | 由 `connect.login` 返回的 sessionId。 |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | 由 `connect.login` 返回的钱包公钥。 |
 
 ## Properties
 
@@ -71,9 +71,9 @@ intent.sign 请求参数。
 
 ***
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
-由 `connect.login` 返回的 sessionId。**必填**。
-service 通过此 id 找到绑定 key，不允许 fallback 到 active key。
+由 `connect.login` 返回的钱包公钥。**必填**。
+service 通过公钥与来源 找到绑定 key，不允许 fallback 到 active key。

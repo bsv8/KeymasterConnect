@@ -14,7 +14,7 @@
     不在 `appView` mode / caller origin 与 bootstrap 期记录不一致 → 拒掉；
     不允许 fallback 到 `connect.login`。
   - 成功结果形状与 `connect.login` 对齐，便于 caller 走同一套"持久化
-    sessionId + 后续 connect.resume / cipher.*"路径。
+    walletPublicKeyHex、完整网络身份 + 后续 connect.resume / cipher.*"路径。
 
 ## Properties overview
 

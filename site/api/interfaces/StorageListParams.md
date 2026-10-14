@@ -6,18 +6,18 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`connectSessionId`](#connectsessionid) | `string` | Yes | Connect 会话 ID。 |
+| [`walletPublicKeyHex`](#walletpublickeyhex) | `string` | Yes | 钱包压缩公钥；与消息外层网络身份及实际来源一起定位连接。 |
 | [`prefix?`](#prefix) | `string` | No | 目录前缀。 |
 | [`cursor?`](#cursor) | `string` | No | 分页游标。 |
 | [`limit?`](#limit) | `number` | No | 每页数量。 |
 
 ## Properties
 
-### connectSessionId
+### walletPublicKeyHex
 
-> **connectSessionId**: `string`
+> **walletPublicKeyHex**: `string`
 
-Connect 会话 ID。
+钱包压缩公钥；与消息外层网络身份及实际来源一起定位连接。
 
 ***
 
