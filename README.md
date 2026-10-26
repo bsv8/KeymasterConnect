@@ -1,43 +1,38 @@
-# Keymaster Connect 使用手册
+# keymaster-connect
 
-面向接入 Keymaster 的网页 App，使用 VitePress 提供指南和从公开 SDK 导出生成的 API 字段说明。
+Keymaster Connect v1 的独立生产协议栈，包含 Client、公开契约和 Receiver，不依赖钱包源码或 WebLoom。
 
-- [接入指南](site/guide/getting-started.md)
-- [能力说明](site/guide/capabilities.md)
-- [会话](site/concepts/sessions.md)
-- [错误处理](site/guide/errors.md)
-- [发布说明](site/release-notes.md)
+已公共发布无 scope 的 `keymaster-connect@0.1.0`；wire 始终保持 v1。第三方安装：
 
-客户端按完整 `{ bsvNetwork, publicKeyHex }` 定位钱包，业务参数使用 `walletPublicKeyHex`。
-旧 `connectSessionId` 已移除，更新接入代码前请阅读[发布说明](site/release-notes.md)。
-
-## 安装、构建与预览
-
-使用 Node.js 22 和 pnpm 11.5.1，在本仓库根目录执行：
-
-```bash
-pnpm install --frozen-lockfile
-pnpm dev
-# 生成静态站点
-pnpm build
-pnpm preview
+```sh
+npm install keymaster-connect@0.1.0
 ```
 
-静态产物位于 `site/.vitepress/dist/`。指南、主题和生成的 `site/api/` 均保存在本仓库中，构建与预览不需要 Keymaster 主项目。
+许可证沿用仓库原有 AGPL v3，见包内 LICENSE。
 
-部署在子路径时使用 `DOCS_BASE`，例如 `DOCS_BASE=/connect/ pnpm build`。
-设置 `DOCS_REPOSITORY_URL=https://github.com/bsv8/KeymasterConnect` 可启用仓库和编辑链接；`DOCS_REPOSITORY_BRANCH` 默认为 `main`。
-SDK 源码链接默认指向 `https://github.com/bsv8/keymaster.cc` 的 `main` 分支，可通过 `DOCS_SOURCE_REPOSITORY_URL` 和 `DOCS_SOURCE_REPOSITORY_BRANCH` 修改。
-
-## 更新 API 字段说明
-
-SDK 和协议类型仍由 Keymaster 主项目维护，不在文档仓库复制。先在 SDK 源项目执行 `pnpm install --frozen-lockfile`，然后在本仓库执行：
-
-```bash
-pnpm api:generate /path/to/keymaster.cc
-pnpm build
+```ts
+import { KeymasterConnectClient } from "keymaster-connect";
+const client = new KeymasterConnectClient({ targetOrigin: "https://keymaster.cc" });
+const connected = await client.login({ text: "连接钱包" });
+console.log(connected.networkIdentity);
 ```
 
-也可设置 `KEYMASTER_SOURCE_DIR` 后执行 `pnpm api:generate`。生成命令读取 `packages/connect/src/index.ts` 及其公开协议类型；使用哪个源码版本由传入的源码目录决定。更新后审核并提交 `site/api/` 的变更，使其他人仅克隆文档仓库即可构建相同版本。
+首次连接不选择公钥或网络，后续业务使用接收端签发的连接绑定。钱包重置或 Worker 世代改变后旧绑定失效，App 必须显式重新连接。ready 只代表传输可用；logout 撤销连接授权，close 只关闭传输。取消是尽力通知，不表示已签名/广播的业务可以回滚。产品未上线，wire 固定为 v1，不维护已删除字段兼容分支。
 
-TypeDoc 配置和字段概览主题分别位于 `typedoc.json`、`typedoc-interface-overview.mjs`。更新脚本先在临时目录生成，生成失败不会覆盖已有 API 页面。
+## 钱包接收端
+
+```ts
+import { KeymasterConnectReceiver } from "keymaster-connect/server";
+```
+
+宿主提供可信 peer 策略、当前钱包身份、生命周期世代和业务执行；Receiver 拥有来源校验、公开请求校验、连接绑定、在途请求关联、取消、结果/事件封包。`accept()` 返回的上下文是接收端签发的运行态权威，不能靠构造同形对象代替。
+
+业务实现得到上下文后处理请求，再调用 `replyResult` 或 `replyError`。排队结束及不可逆业务前调用 `assertCurrent`；钱包自身仍必须在授权、签名、持久化和广播边界复核业务权威。Receiver 不拥有密码/私钥、资金审批、UTXO、幂等付款账本或业务存储。
+
+`acceptReady` / `acceptCancel` 处理控制消息，`sendEvent` 只向当前有效绑定推送，`clear` 只清理协议运行态、不代表业务授权已撤销。未信任来源的消息不会得到响应。每个原请求只可回复一次，重复在途 ID 不会产生第二次业务执行。
+
+公开类型和纯常量也可从 `keymaster-connect/protocol` 引用；客户端入口不加载接收端和 proof 密码学代码。
+
+仓库根目录是 SDK：`npm run typecheck` 检查类型，`npm run build` 只构建 SDK，`npm publish` 从根目录发布 SDK 新版本（已发布的 `0.1.0` 不可覆盖）。发布命令见 [RELEASING.md](RELEASING.md)。
+
+文档是私有的 [doc 子项目](doc/README.md)：根目录执行 `npm run api:generate` 生成 API，`npm run doc:build` 构建站点，`npm run doc:dev` 启动预览开发。文档不进入 npm 发布包。包版本与 wire 版本不是同一概念。

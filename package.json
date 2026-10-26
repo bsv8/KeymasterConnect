@@ -1,24 +1,34 @@
 {
-  "name": "@keymaster/connect-docs",
+  "name": "keymaster-connect",
   "version": "0.1.0",
-  "private": true,
+  "description": "Keymaster Connect v1 的独立客户端与接收端协议栈",
   "type": "module",
+  "repository": { "type": "git", "url": "git+https://github.com/bsv8/KeymasterConnect.git" },
+  "sideEffects": false,
+  "license": "SEE LICENSE IN LICENSE",
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" },
+    "./protocol": { "types": "./dist/protocol.d.ts", "import": "./dist/protocol.js", "default": "./dist/protocol.js" },
+    "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js", "default": "./dist/server.js" }
+  },
   "scripts": {
-    "api:generate": "node coding/docs/generate-api.mjs",
-    "dev": "vitepress dev site",
-    "build": "vitepress build site",
-    "preview": "vitepress preview site"
+    "prepublishOnly": "npm run typecheck && npm run build",
+    "prepare": "npm run build",
+    "build": "tsup",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "sdk:build": "npm run build",
+    "sdk:typecheck": "npm run typecheck",
+    "api:generate": "npm --prefix doc run api:generate",
+    "doc:dev": "npm --prefix doc run dev",
+    "doc:build": "npm --prefix doc run build",
+    "doc:preview": "npm --prefix doc run preview"
   },
-  "devDependencies": {
-    "typedoc": "0.28.20",
-    "typedoc-plugin-markdown": "4.12.0",
-    "typedoc-vitepress-theme": "1.1.3",
-    "vitepress": "1.6.4",
-    "typescript": "5.9.3",
-    "@types/node": "24.13.3"
-  },
-  "packageManager": "pnpm@11.5.1",
-  "engines": {
-    "node": ">=22"
-  }
+  "devDependencies": { "tsup": "8.5.1", "typescript": "5.9.3" },
+  "dependencies": { "@noble/curves": "^2.2.0", "@noble/hashes": "^2.2.0" },
+  "engines": { "node": ">=20.19" },
+  "packageManager": "pnpm@11.5.1"
 }
