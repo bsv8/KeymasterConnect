@@ -471,7 +471,7 @@ inference.
 
 ##### M
 
-`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"price.get"` \| `"price.subscribe"` \| `"price.unsubscribe"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
+`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
 
 #### Parameters
 
@@ -694,75 +694,3 @@ Promise resolve 不等于已广播，应检查返回状态。
 #### Returns
 
 `Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
-
-## Price
-
-Read the Keymaster display price (amount + unit) once, or subscribe to
-`price.changed` pushes. The price is display-only reference data.
-
-### priceGet()
-
-> **priceGet**(`params`, `options?`): `Promise`\<[`PriceValue`](../interfaces/PriceValue.md)\>
-
-一次读取 Keymaster 当前的 BSV 展示价格（金额 + 单位）。
-
-未就绪（未配置 / 未收到快照 / 订阅出错）时返回 `amount: "0.00"`；
-价格只作显示参考，不用于业务判断。
-
-#### Parameters
-
-##### params
-
-[`PriceGetParams`](../interfaces/PriceGetParams.md)
-
-##### options?
-
-[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
-
-#### Returns
-
-`Promise`\<[`PriceValue`](../interfaces/PriceValue.md)\>
-
-***
-
-### priceSubscribe()
-
-> **priceSubscribe**(`params`, `options?`): `Promise`\<[`PriceSubscriptionResult`](../interfaces/PriceSubscriptionResult.md)\>
-
-订阅 `price.changed` 推送；订阅前不会收到价格事件。
-
-#### Parameters
-
-##### params
-
-[`PriceSubscribeParams`](../interfaces/PriceSubscribeParams.md)
-
-##### options?
-
-[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
-
-#### Returns
-
-`Promise`\<[`PriceSubscriptionResult`](../interfaces/PriceSubscriptionResult.md)\>
-
-***
-
-### priceUnsubscribe()
-
-> **priceUnsubscribe**(`params`, `options?`): `Promise`\<[`PriceSubscriptionResult`](../interfaces/PriceSubscriptionResult.md)\>
-
-取消当前会话的 `price.changed` 推送。
-
-#### Parameters
-
-##### params
-
-[`PriceSubscribeParams`](../interfaces/PriceSubscribeParams.md)
-
-##### options?
-
-[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
-
-#### Returns
-
-`Promise`\<[`PriceSubscriptionResult`](../interfaces/PriceSubscriptionResult.md)\>

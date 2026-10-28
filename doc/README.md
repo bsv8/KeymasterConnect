@@ -24,7 +24,7 @@ npm run typecheck
 npm run build
 ```
 
-SDK 已从仓库根目录公共发布无 scope 的 `keymaster-connect@0.1.0`；第三方统一从 npm 安装，不维护长期 vendor 安装包。发布者本人执行授权及发布，见 [发布操作说明](../RELEASING.md)。
+SDK 已从仓库根目录公共发布无 scope 的 `keymaster-connect@0.1.1`；第三方统一从 npm 安装，不维护长期 vendor 安装包。发布者本人执行授权及发布，见 [发布操作说明](../RELEASING.md)。
 
 ```ts
 import { KeymasterConnectClient } from "keymaster-connect";

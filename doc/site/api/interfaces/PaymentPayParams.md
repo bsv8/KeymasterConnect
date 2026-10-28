@@ -11,7 +11,7 @@
 | [`paymentType`](#paymenttype) | [`ConnectPaymentType`](../type-aliases/ConnectPaymentType.md) | Yes | — |
 | [`businessKind`](#businesskind) | `string` | Yes | App 声明的业务用途；展示时不是可信商业结论。 |
 | [`amountSatoshis`](#amountsatoshis) | `number` | Yes | 业务金额（聪，不含矿工费）。 |
-| [`feeRateSatoshisPerKb?`](#feeratesatoshisperkb) | `number` | No | 可选希望费率（sat/kB）。 |
+| [`feeRateSatoshisPerKb?`](#feeratesatoshisperkb) | `number` | No | 可选希望费率（sat/kB）；缺省由钱包当前网络的有效费率策略决定。 |
 | [`recipient`](#recipient) | [`ConnectPaymentRecipient`](../type-aliases/ConnectPaymentRecipient.md) | Yes | — |
 
 ## Properties
@@ -56,7 +56,7 @@ App 声明的业务用途；展示时不是可信商业结论。
 
 > `optional` **feeRateSatoshisPerKb?**: `number`
 
-可选希望费率（sat/kB）。
+可选希望费率（sat/kB）；缺省由钱包当前网络的有效费率策略决定。
 
 ***
 

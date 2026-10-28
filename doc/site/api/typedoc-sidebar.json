@@ -184,22 +184,6 @@
         "link": "/api/interfaces/ChannelMessageReceivedEventData.md"
       },
       {
-        "text": "PriceGetParams",
-        "link": "/api/interfaces/PriceGetParams.md"
-      },
-      {
-        "text": "PriceValue",
-        "link": "/api/interfaces/PriceValue.md"
-      },
-      {
-        "text": "PriceSubscribeParams",
-        "link": "/api/interfaces/PriceSubscribeParams.md"
-      },
-      {
-        "text": "PriceSubscriptionResult",
-        "link": "/api/interfaces/PriceSubscriptionResult.md"
-      },
-      {
         "text": "StorageListParams",
         "link": "/api/interfaces/StorageListParams.md"
       },
@@ -472,14 +456,6 @@
       {
         "text": "ChannelSubscriptionErrorCode",
         "link": "/api/type-aliases/ChannelSubscriptionErrorCode.md"
-      },
-      {
-        "text": "PriceGetResult",
-        "link": "/api/type-aliases/PriceGetResult.md"
-      },
-      {
-        "text": "PriceChangedEventData",
-        "link": "/api/type-aliases/PriceChangedEventData.md"
       },
       {
         "text": "MsFileSatoshiAmount",

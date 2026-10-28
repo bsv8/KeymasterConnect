@@ -4,7 +4,7 @@ import {
   validateNetworkIdentity, PROTOCOL_VERSION, PROTOCOL_METHODS,
   STORAGE_MAX_PAYLOAD_BYTES, STORAGE_DEFAULT_LIST_LIMIT, STORAGE_MAX_LIST_LIMIT, isValidMsFileSourceId,
   type NetworkIdentity, type JSONValue, type ChannelPublishParams, type ChannelSubscriptionSetParams,
-  type PriceSubscribeParams, type StorageListParams, type StorageDirectoryParams, type StoragePutParams,
+  type StorageListParams, type StorageDirectoryParams, type StoragePutParams,
   type StorageGetParams, type StorageDeleteParams, type MsFileStatParams, type MsFileSeedReadParams,
   type MsFileBlockReadParams, type BinaryField, type ProtocolErrorCode, type IdentityGetParams,
   type IntentSignParams, type CipherEncryptParams, type CipherDecryptParams, type P2pkhTransferAssetId,
@@ -273,13 +273,6 @@ function validateChannelSubscriptionSetParams(raw: unknown): ChannelSubscription
         throw new ProtocolValidationError("invalid_request", "channels must not contain duplicates");
     }
     return { channels };
-}
-
-/** price.get / price.subscribe / price.unsubscribe 共用校验：只接受 session。 */
-function validatePriceParams(raw: unknown): PriceSubscribeParams {
-    const obj = expectObject(raw, "price params");
-    requireExactKeys(obj, [], "price params");
-    return {};
 }
 
 export function validateExactChannel(value: unknown, field = "channel"): string {
@@ -728,7 +721,6 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
         case "payment.channel.register": normalized = validatePaymentChannelRegisterParams(params); break;
         case "channel.publish": normalized = validateChannelPublishParams(params); break;
         case "channel.subscription_set": normalized = validateChannelSubscriptionSetParams(params); break;
-        case "price.get": case "price.subscribe": case "price.unsubscribe": normalized = validatePriceParams(params); break;
         case "storage.list": normalized = validateStorageListParams(params); break;
         case "storage.directory.create": normalized = validateStorageDirectoryParams(params, method, true); break;
         case "storage.directory.delete": normalized = validateStorageDirectoryParams(params, method, false); break;

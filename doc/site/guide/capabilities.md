@@ -22,8 +22,6 @@ pageClass: capability-map-page
 | `payment.channel.register` | 注册 App 支付用途，取得付款必填的 channelId；不授予免确认额度 |
 | `channel.publish` | 向精确频道发布已签名 JSON |
 | `channel.subscription_set` | 替换当前会话贡献的精确订阅集合 |
-| `price.get` | 一次读取当前 BSV 展示价（金额 + 单位） |
-| `price.subscribe` / `price.unsubscribe` | 订阅 / 取消 `price.changed` 推送 |
 | `storage.list` | 列出 App 隔离命名空间中的目录和对象 |
 | `storage.directory.create/delete` | 创建或删除目录标记 |
 | `storage.put/get/delete` | 写入、读取或删除对象 |
@@ -34,7 +32,7 @@ pageClass: capability-map-page
 
 付款前调用 `registerPaymentChannel({ channelName: "checkout", paymentType: "p2pkh" })`，
 把返回的 `channelId` 传给每次 `paymentPay`。相同 App、名称、用途及网络重复注册得到同一编号。
-用户在钱包按发行人及付款类型设置单笔实际花费审核额度；超额由软件弹窗或设备确认。
+付款授权和签名策略由钱包负责，SDK 不提供设备连接或软硬钱包切换。
 缺 channelId 会明确拒绝，不由 Keymaster 补默认值。恢复连接不删除历史付款责任。
 
 ```ts
@@ -52,16 +50,6 @@ const result = await keymaster.identityGet(params, {
 
 `channel.message_received` 推送已经验签的频道、发行人公钥、消息编号和 JSON 内容。
 成功发布只表示 Keymaster 接受本地操作，不表示远端已经收到。
-
-## BSV 价格
-
-`price.get` 返回 `{ amount, unit, updatedAtMs }`：金额、单位与快照时间。价格由
-Keymaster 的 BSV 价格设置决定（服务器、交易所、交易对），App 看不到这些细节。
-价格只作显示参考，不用于业务判断；未就绪（未配置、未收到快照或订阅出错）时
-`amount` 为 `"0.00"`，不会返回错误。
-
-调用 `price.subscribe` 后才会收到 `price.changed`；`price.unsubscribe` 或
-`connect.logout` 停止推送。
 
 ## 身份要求
 

@@ -17,7 +17,6 @@ const { publicKeyHex, bsvNetwork } = session.networkIdentity;
 业务请求不携带钱包公钥或网络，SDK 使用当前连接绑定。
 
 ```ts
-const price = await keymaster.priceGet({});
 await keymaster.identityGet({
   aud: window.location.origin,
   iat: Math.floor(Date.now() / 1000),

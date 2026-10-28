@@ -122,32 +122,6 @@ export interface ChannelMessageReceivedEventData {
     rawEnvelope?: Uint8Array;
 }
 
-export interface PriceGetParams extends Record<string, never> {
-}
-
-export interface PriceValue {
-    /** 十进制金额字符串，例如 "45.12"；未就绪时为 "0"。 */
-    amount: string;
-    /** 计价单位，例如 "USDT"；未就绪时仍给出当前配置推导出的单位。 */
-    unit: string;
-    /** 行情快照生成的 Unix 毫秒时间；未就绪时为 0。 */
-    updatedAtMs: number;
-}
-
-/** `price.get` 结果。 */
-export type PriceGetResult = PriceValue;
-
-export interface PriceSubscribeParams extends Record<string, never> {
-}
-
-export interface PriceSubscriptionResult {
-    /** 调用完成后该会话是否处于价格推送订阅态。 */
-    subscribed: boolean;
-}
-
-/** `price.changed` 事件数据；形状与 `price.get` 结果一致。 */
-export type PriceChangedEventData = PriceValue;
-
 export interface StorageListParams {
     /** 目录前缀。 */
     prefix?: string;
@@ -435,9 +409,7 @@ export type ProtocolErrorCode =
 /** Transport authority was revoked or belongs to another wallet/Worker generation. */
 "connection_expired" | "invalid_request" | "invalid_origin" | "user_rejected" | "active_key_unavailable" | "decrypt_failed"
 /**
- * 请求了当前资产但 Keymaster 设置里未开启（施工单 2026-09-18 001）。
- * 例如 `p2pkh.transfer` / `feepool.*` 传 `assetId: "bsv-testnet"` 而
- * P2PKH 设置里没有打开 testnet。accept 阶段 fail-fast，不进确认流。
+ * 请求资产与连接绑定的钱包网络不一致；accept 阶段拒绝，不进入业务执行。
  */
  | "asset_not_enabled"
 /** Connect v1 明确排除的方法族（新费用池签名等）。 */
@@ -485,10 +457,8 @@ export interface ProtocolCancelMessage {
  * 设计缘由：
  *   - `channel.message_received` 是已验签的 Channel 公开消息，只发送给
  *     当前 session 已精确订阅的频道；
- *   - `price.changed` 是 Keymaster 当前 BSV 价格展示值变化，向所有活跃
- *     session 推送；未就绪时也可能推送 amount "0"。
  */
-export type ProtocolEventName = "channel.message_received" | "price.changed";
+export type ProtocolEventName = "channel.message_received";
 
 export interface IdentityGetParams {
     /** 目标站点 origin；必须等于 `event.origin`，否则拒绝。 */
@@ -594,9 +564,7 @@ export interface PaymentChannelRegisterResult {
  * 设计缘由（施工单 2026-09-18 001 多资产硬切换）：
  *   - 公开命名固定 `bsv-mainnet` / `bsv-testnet`，不暴露 p2pkh 内部
  *     的 `bsv` / `bsvtest`；
- *   - `bsv-testnet` 只属于测试网身份，
- *     否则 accept 阶段 fail-fast `asset_not_enabled`；
- *   - 缺省（不传 assetId）等同 `bsv-mainnet`，旧调用方零改动。
+ *   - 资产由连接绑定的钱包网络决定，调用方不能选择或覆盖该网络。
  */
 export type P2pkhTransferAssetId = "bsv-mainnet" | "bsv-testnet";
 
@@ -607,12 +575,12 @@ export interface P2pkhTransferParams {
     recipientAddress: string;
     /** 正整数 satoshis。 */
     amountSatoshis: number;
-    /** 可选 fee rate（sat/kB）。>= 1。 */
+    /** 可选费率（sat/kB），>= 1；缺省由钱包当前网络的有效费率策略决定。 */
     feeRateSatoshisPerKb?: number;
 }
 
 export interface P2pkhTransferResult {
-    /** 本次实际转账的资产；与 params.assetId 一致（缺省回 `bsv-mainnet`）。 */
+    /** 本次实际转账的资产，与连接绑定的钱包网络一致。 */
     assetId: P2pkhTransferAssetId;
     /** 已广播交易的 canonical txid。 */
     txid: string;
@@ -648,7 +616,7 @@ export interface PaymentPayParams {
     businessKind: string;
     /** 业务金额（聪，不含矿工费）。 */
     amountSatoshis: number;
-    /** 可选希望费率（sat/kB）。 */
+    /** 可选希望费率（sat/kB）；缺省由钱包当前网络的有效费率策略决定。 */
     feeRateSatoshisPerKb?: number;
     recipient: ConnectPaymentRecipient;
 }
@@ -760,12 +728,6 @@ export const PROTOCOL_METHODS = [
     // Channel 是唯一的公开频道 API，见 docs/SatSubscription与Channel.md。
     "channel.publish",
     "channel.subscription_set",
-    // BSV 价格只读展示能力：金额 + 单位，不暴露行情源 / 频道 / 交易对。
-    // `price.get` 一次获取；`price.subscribe` / `price.unsubscribe` 控制
-    // `price.changed` 推送。
-    "price.get",
-    "price.subscribe",
-    "price.unsubscribe",
     "storage.list",
     "storage.directory.create",
     "storage.directory.delete",
@@ -800,9 +762,6 @@ export interface MethodParamsMap {
     "connect.launch": ConnectLaunchParams;
     "channel.publish": ChannelPublishParams;
     "channel.subscription_set": ChannelSubscriptionSetParams;
-    "price.get": PriceGetParams;
-    "price.subscribe": PriceSubscribeParams;
-    "price.unsubscribe": PriceSubscribeParams;
     "storage.list": StorageListParams;
     "storage.directory.create": StorageDirectoryParams;
     "storage.directory.delete": StorageDirectoryParams;
@@ -828,9 +787,6 @@ export interface MethodResultMap {
     "connect.launch": ConnectLaunchResult;
     "channel.publish": ChannelPublishResult;
     "channel.subscription_set": ChannelSubscriptionSetResult;
-    "price.get": PriceGetResult;
-    "price.subscribe": PriceSubscriptionResult;
-    "price.unsubscribe": PriceSubscriptionResult;
     "storage.list": StorageListResult;
     "storage.directory.create": StorageDirectoryResult;
     "storage.directory.delete": StorageDirectoryResult;
@@ -845,8 +801,7 @@ export interface MethodResultMap {
 export type MethodParams<M extends ProtocolMethod> = M extends ProtocolMethod ? keyof MethodParamsMap[M] extends never ? Record<string, never> : MethodParamsMap[M] : never;
 export type MethodResult<M extends ProtocolMethod = ProtocolMethod> = MethodResultMap[M];
 export type ProtocolEventPayload =
-  | { v: typeof PROTOCOL_VERSION; type: "event"; event: "channel.message_received"; data: ChannelMessageReceivedEventData }
-  | { v: typeof PROTOCOL_VERSION; type: "event"; event: "price.changed"; data: PriceChangedEventData };
+  { v: typeof PROTOCOL_VERSION; type: "event"; event: "channel.message_received"; data: ChannelMessageReceivedEventData };
 export type ProtocolEventMessage = ProtocolEventPayload & { networkIdentity: NetworkIdentity; bindingId: string };
 export interface ProtocolRequestMessage<M extends ProtocolMethod = ProtocolMethod> {
   v: typeof PROTOCOL_VERSION; type: "request"; id: string; method: M; params: MethodParams<M>; bindingId?: string;

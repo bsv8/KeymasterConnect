@@ -20,9 +20,6 @@
 | [`connect.launch`](#connectlaunch) | [`ConnectLaunchResult`](ConnectLaunchResult.md) | Yes | — |
 | [`channel.publish`](#channelpublish) | [`ChannelPublishResult`](ChannelPublishResult.md) | Yes | — |
 | [`channel.subscription_set`](#channelsubscription-set) | [`ChannelSubscriptionSetResult`](ChannelSubscriptionSetResult.md) | Yes | — |
-| [`price.get`](#priceget) | [`PriceValue`](PriceValue.md) | Yes | — |
-| [`price.subscribe`](#pricesubscribe) | [`PriceSubscriptionResult`](PriceSubscriptionResult.md) | Yes | — |
-| [`price.unsubscribe`](#priceunsubscribe) | [`PriceSubscriptionResult`](PriceSubscriptionResult.md) | Yes | — |
 | [`storage.list`](#storagelist) | [`StorageListResult`](StorageListResult.md) | Yes | — |
 | [`storage.directory.create`](#storagedirectorycreate) | [`StorageDirectoryResult`](StorageDirectoryResult.md) | Yes | — |
 | [`storage.directory.delete`](#storagedirectorydelete) | [`StorageDirectoryResult`](StorageDirectoryResult.md) | Yes | — |
@@ -116,24 +113,6 @@
 ### channel.subscription\_set
 
 > **channel.subscription\_set**: [`ChannelSubscriptionSetResult`](ChannelSubscriptionSetResult.md)
-
-***
-
-### price.get
-
-> **price.get**: [`PriceValue`](PriceValue.md)
-
-***
-
-### price.subscribe
-
-> **price.subscribe**: [`PriceSubscriptionResult`](PriceSubscriptionResult.md)
-
-***
-
-### price.unsubscribe
-
-> **price.unsubscribe**: [`PriceSubscriptionResult`](PriceSubscriptionResult.md)
 
 ***
 

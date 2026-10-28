@@ -23,9 +23,6 @@
 | [`connect.launch`](#connectlaunch) | [`ConnectLaunchParams`](ConnectLaunchParams.md) | Yes | — |
 | [`channel.publish`](#channelpublish) | [`ChannelPublishParams`](ChannelPublishParams.md) | Yes | — |
 | [`channel.subscription_set`](#channelsubscription-set) | [`ChannelSubscriptionSetParams`](ChannelSubscriptionSetParams.md) | Yes | — |
-| [`price.get`](#priceget) | [`PriceGetParams`](PriceGetParams.md) | Yes | — |
-| [`price.subscribe`](#pricesubscribe) | [`PriceSubscribeParams`](PriceSubscribeParams.md) | Yes | — |
-| [`price.unsubscribe`](#priceunsubscribe) | [`PriceSubscribeParams`](PriceSubscribeParams.md) | Yes | — |
 | [`storage.list`](#storagelist) | [`StorageListParams`](StorageListParams.md) | Yes | — |
 | [`storage.directory.create`](#storagedirectorycreate) | [`StorageDirectoryParams`](StorageDirectoryParams.md) | Yes | — |
 | [`storage.directory.delete`](#storagedirectorydelete) | [`StorageDirectoryParams`](StorageDirectoryParams.md) | Yes | — |
@@ -119,24 +116,6 @@
 ### channel.subscription\_set
 
 > **channel.subscription\_set**: [`ChannelSubscriptionSetParams`](ChannelSubscriptionSetParams.md)
-
-***
-
-### price.get
-
-> **price.get**: [`PriceGetParams`](PriceGetParams.md)
-
-***
-
-### price.subscribe
-
-> **price.subscribe**: [`PriceSubscribeParams`](PriceSubscribeParams.md)
-
-***
-
-### price.unsubscribe
-
-> **price.unsubscribe**: [`PriceSubscribeParams`](PriceSubscribeParams.md)
 
 ***
 

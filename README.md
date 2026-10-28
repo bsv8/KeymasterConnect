@@ -2,10 +2,10 @@
 
 Keymaster Connect v1 的独立生产协议栈，包含 Client、公开契约和 Receiver，不依赖钱包源码或 WebLoom。
 
-已公共发布无 scope 的 `keymaster-connect@0.1.0`；wire 始终保持 v1。第三方安装：
+已公共发布无 scope 的 `keymaster-connect@0.1.1`，wire 始终保持 v1。第三方安装：
 
 ```sh
-npm install keymaster-connect@0.1.0
+npm install keymaster-connect@0.1.1
 ```
 
 许可证沿用仓库原有 AGPL v3，见包内 LICENSE。
@@ -17,7 +17,7 @@ const connected = await client.login({ text: "连接钱包" });
 console.log(connected.networkIdentity);
 ```
 
-首次连接不选择公钥或网络，后续业务使用接收端签发的连接绑定。钱包重置或 Worker 世代改变后旧绑定失效，App 必须显式重新连接。ready 只代表传输可用；logout 撤销连接授权，close 只关闭传输。取消是尽力通知，不表示已签名/广播的业务可以回滚。产品未上线，wire 固定为 v1，不维护已删除字段兼容分支。
+公开能力包括 Connect、Identity、Cipher、Payment、Channel、Storage 和 MSFile。首次连接不选择公钥或网络，后续业务使用接收端签发的连接绑定。钱包重置或 Worker 世代改变后旧绑定失效，App 必须显式重新连接。ready 只代表传输可用；logout 撤销连接授权，close 只关闭传输。取消是尽力通知，不表示已签名/广播的业务可以回滚。产品未上线，wire 固定为 v1，不维护已删除字段兼容分支。
 
 ## 钱包接收端
 
@@ -33,6 +33,6 @@ import { KeymasterConnectReceiver } from "keymaster-connect/server";
 
 公开类型和纯常量也可从 `keymaster-connect/protocol` 引用；客户端入口不加载接收端和 proof 密码学代码。
 
-仓库根目录是 SDK：`npm run typecheck` 检查类型，`npm run build` 只构建 SDK，`npm publish` 从根目录发布 SDK 新版本（已发布的 `0.1.0` 不可覆盖）。发布命令见 [RELEASING.md](RELEASING.md)。
+仓库根目录是 SDK：`npm run typecheck` 检查类型，`npm run build` 只构建 SDK，`npm publish` 从根目录发布 SDK 新版本（已发布的版本不可覆盖）。发布命令见 [RELEASING.md](RELEASING.md)。
 
 文档是私有的 [doc 子项目](doc/README.md)：根目录执行 `npm run api:generate` 生成 API，`npm run doc:build` 构建站点，`npm run doc:dev` 启动预览开发。文档不进入 npm 发布包。包版本与 wire 版本不是同一概念。

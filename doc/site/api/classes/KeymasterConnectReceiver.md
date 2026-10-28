@@ -64,7 +64,7 @@ appView 首条合法 ready 才认领来源；无效版本和外来窗口不改�
 
 ### accept()
 
-> **accept**(`event`): `Promise`\<[`ReceiverRequest`](../interfaces/ReceiverRequest.md)\<`"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"price.get"` \| `"price.subscribe"` \| `"price.unsubscribe"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`\> \| `null`\>
+> **accept**(`event`): `Promise`\<[`ReceiverRequest`](../interfaces/ReceiverRequest.md)\<`"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`\> \| `null`\>
 
 校验并签发请求上下文。重复在途 ID 被忽略；非法可信请求返回标准错误。
 
@@ -76,13 +76,13 @@ appView 首条合法 ready 才认领来源；无效版本和外来窗口不改�
 
 #### Returns
 
-`Promise`\<[`ReceiverRequest`](../interfaces/ReceiverRequest.md)\<`"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"price.get"` \| `"price.subscribe"` \| `"price.unsubscribe"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`\> \| `null`\>
+`Promise`\<[`ReceiverRequest`](../interfaces/ReceiverRequest.md)\<`"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`\> \| `null`\>
 
 ***
 
 ### acceptCancel()
 
-> **acceptCancel**(`event`): [`ReceiverRequest`](../interfaces/ReceiverRequest.md)\<`"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"price.get"` \| `"price.subscribe"` \| `"price.unsubscribe"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`\> \| `null`
+> **acceptCancel**(`event`): [`ReceiverRequest`](../interfaces/ReceiverRequest.md)\<`"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`\> \| `null`
 
 取消只通知宿主；宿主决定是否仍可取消，执行中的不可逆操作不能被协议回滚。
 
@@ -94,7 +94,7 @@ appView 首条合法 ready 才认领来源；无效版本和外来窗口不改�
 
 #### Returns
 
-[`ReceiverRequest`](../interfaces/ReceiverRequest.md)\<`"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"price.get"` \| `"price.subscribe"` \| `"price.unsubscribe"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`\> \| `null`
+[`ReceiverRequest`](../interfaces/ReceiverRequest.md)\<`"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`\> \| `null`
 
 ***
 
@@ -126,7 +126,7 @@ appView 首条合法 ready 才认领来源；无效版本和外来窗口不改�
 
 ##### M
 
-`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"price.get"` \| `"price.subscribe"` \| `"price.unsubscribe"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
+`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
 
 #### Parameters
 

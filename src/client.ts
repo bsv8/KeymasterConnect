@@ -1,5 +1,5 @@
 import {
-  PROTOCOL_VERSION,
+  PROTOCOL_VERSION, PROTOCOL_METHODS,
   validateNetworkIdentity, sameNetworkIdentity, type NetworkIdentity,
   type ChannelPublishParams,
   type ChannelPublishResult,
@@ -35,10 +35,6 @@ import {
   type PaymentStatusResult,
   type PaymentChannelRegisterParams,
   type PaymentChannelRegisterResult,
-  type PriceGetParams,
-  type PriceGetResult,
-  type PriceSubscribeParams,
-  type PriceSubscriptionResult,
   type ProtocolErrorCode,
   type ProtocolEventMessage,
   type ProtocolMethod,
@@ -206,10 +202,6 @@ const DEFAULT_CLOSE_POLL_MS = 500;
  * Publish JSON content and manage exact-channel subscriptions. Incoming
  * messages arrive as `channel.message_received` events.
  *
- * @groupDescription Price
- * Read the Keymaster display price (amount + unit) once, or subscribe to
- * `price.changed` pushes. The price is display-only reference data.
- *
  * @groupDescription Storage
  * Manage app-scoped directories and objects.
  *
@@ -290,6 +282,7 @@ export class KeymasterConnectClient {
     options: KeymasterRequestOptions = {}
   ): Promise<MethodResult<M>> {
     if (options.signal?.aborted) throw abortReason(options.signal);
+    if (!PROTOCOL_METHODS.includes(method)) throw new TypeError("Unknown Connect method");
     if (!params || typeof params !== "object" || Array.isArray(params)) throw new TypeError("params must be an object");
     for (const field of ["walletPublicKeyHex", "networkIdentity", "bsvNetwork", "assetId"]) {
       if (field in params) throw new TypeError(`Removed wallet selector: ${field}`);
@@ -483,42 +476,6 @@ export class KeymasterConnectClient {
     options?: KeymasterRequestOptions
   ): Promise<ChannelSubscriptionSetResult> {
     return this.request("channel.subscription_set", params, options);
-  }
-
-  /**
-   * 一次读取 Keymaster 当前的 BSV 展示价格（金额 + 单位）。
-   *
-   * 未就绪（未配置 / 未收到快照 / 订阅出错）时返回 `amount: "0.00"`；
-   * 价格只作显示参考，不用于业务判断。
-   *
-   * @group Price
-   */
-  priceGet(params: PriceGetParams, options?: KeymasterRequestOptions): Promise<PriceGetResult> {
-    return this.request("price.get", params, options);
-  }
-
-  /**
-   * 订阅 `price.changed` 推送；订阅前不会收到价格事件。
-   *
-   * @group Price
-   */
-  priceSubscribe(
-    params: PriceSubscribeParams,
-    options?: KeymasterRequestOptions
-  ): Promise<PriceSubscriptionResult> {
-    return this.request("price.subscribe", params, options);
-  }
-
-  /**
-   * 取消当前会话的 `price.changed` 推送。
-   *
-   * @group Price
-   */
-  priceUnsubscribe(
-    params: PriceSubscribeParams,
-    options?: KeymasterRequestOptions
-  ): Promise<PriceSubscriptionResult> {
-    return this.request("price.unsubscribe", params, options);
   }
 
   /**
@@ -732,6 +689,8 @@ export class KeymasterConnectClient {
       return;
     }
     if (value.type === "event") {
+      // 只投递当前公开契约中的事件，避免已删除能力仍透传给 App。
+      if (value.event !== "channel.message_received") return;
       try { if (!this.identityValue || value.bindingId !== this.bindingId || !sameNetworkIdentity(this.identityValue, validateNetworkIdentity(value.networkIdentity))) return; } catch { return; }
       try {
         this.options.onEvent?.(event.data as ProtocolEventMessage);
