@@ -4,7 +4,7 @@
 
 Official browser client for Keymaster Connect V1.
 
-One client owns one reusable Session Window. It validates both the exact
+一个客户端关联一个完整钱包窗口，但不拥有关闭钱包的权利。It validates both the exact
 message origin and the source window, correlates concurrent requests by id,
 supports protocol cancellation through `AbortSignal`, and keeps persistent
 Connect sessions separate from the window transport lifecycle.
@@ -450,7 +450,7 @@ Current browser transport state.
 
 Establishes the browser transport.
 
-Popup mode opens the Session Window and waits for `ready`. appView mode
+popup 模式打开完整钱包根页面并等待 ready；没有独立协议页。appView mode
 adopts `window.opener`, installs the listener, and sends the child `ready`
 message without ever opening a fallback popup.
 

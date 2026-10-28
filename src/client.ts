@@ -51,7 +51,7 @@ import {
   type StoragePutResult,
 } from "./protocol.js";
 
-/** How the SDK obtains its Keymaster Session Window. */
+/** SDK 获取完整钱包窗口的方向；popup 为 App 主动打开钱包，appView 为钱包启动 App。 */
 export type KeymasterConnectMode = "popup" | "appView";
 
 /** Observable lifecycle of the browser transport. */
@@ -120,13 +120,11 @@ export interface KeymasterConnectOptions {
   targetOrigin: string;
   /** `popup` for direct integrations; `appView` for apps launched by Keymaster. */
   mode?: KeymasterConnectMode;
-  /** Session Window path relative to `targetOrigin`. */
+  /** 完整钱包页面路径，默认根页面；不是独立协议页。 */
   popupPath?: string;
   /** Browser window name reused by direct integrations. */
   popupName?: string;
-  popupWidth?: number;
-  popupHeight?: number;
-  /** Maximum wait for a popup-mode `ready` message. Defaults to 30 seconds. */
+  /** 等待完整钱包初始化/解锁并发送 ready 的最长时间，默认两分钟；超时不关闭钱包。 */
   readyTimeoutMs?: number;
   /** Default request timeout. Defaults to two minutes. */
   requestTimeoutMs?: number;
@@ -149,16 +147,17 @@ interface PendingRequest {
   abortListener?: () => void;
 }
 
-const DEFAULT_POPUP_PATH = "/protocol/v1/popup";
-const DEFAULT_POPUP_NAME = "keymaster-connect-v1";
-const DEFAULT_READY_TIMEOUT_MS = 30_000;
+const DEFAULT_POPUP_PATH = "/";
+// 每个客户端打开自己的钱包文档，避免复用其他 App 的窗口而继承错误 opener。
+const DEFAULT_POPUP_NAME = "_blank";
+const DEFAULT_READY_TIMEOUT_MS = 120_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
 const DEFAULT_CLOSE_POLL_MS = 500;
 
 /**
  * Official browser client for Keymaster Connect V1.
  *
- * One client owns one reusable Session Window. It validates both the exact
+ * 一个客户端关联一个完整钱包窗口，但不拥有关闭钱包的权利。It validates both the exact
  * message origin and the source window, correlates concurrent requests by id,
  * supports protocol cancellation through `AbortSignal`, and keeps persistent
  * Connect sessions separate from the window transport lifecycle.
@@ -218,12 +217,11 @@ export class KeymasterConnectClient {
   private readonly mode: KeymasterConnectMode;
   private readonly environment: KeymasterBrowserEnvironment;
   private readonly options: Required<Pick<KeymasterConnectOptions,
-    "popupPath" | "popupName" | "popupWidth" | "popupHeight" |
+    "popupPath" | "popupName" |
     "readyTimeoutMs" | "requestTimeoutMs" | "closePollMs">> & KeymasterConnectOptions;
   private readonly pending = new Map<string, PendingRequest>();
   private stateValue: KeymasterConnectState = "idle";
   private sessionWindow: Window | null = null;
-  private ownsSessionWindow = false;
   private listenerInstalled = false;
   private readyPromise: Promise<void> | null = null;
   private readyResolve: (() => void) | null = null;
@@ -239,8 +237,6 @@ export class KeymasterConnectClient {
       ...options,
       popupPath: options.popupPath ?? DEFAULT_POPUP_PATH,
       popupName: options.popupName ?? DEFAULT_POPUP_NAME,
-      popupWidth: positiveNumber(options.popupWidth ?? 520, "popupWidth"),
-      popupHeight: positiveNumber(options.popupHeight ?? 760, "popupHeight"),
       readyTimeoutMs: positiveNumber(options.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS, "readyTimeoutMs"),
       requestTimeoutMs: positiveNumber(options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS, "requestTimeoutMs"),
       closePollMs: positiveNumber(options.closePollMs ?? DEFAULT_CLOSE_POLL_MS, "closePollMs")
@@ -260,7 +256,7 @@ export class KeymasterConnectClient {
   /**
    * Establishes the browser transport.
    *
-   * Popup mode opens the Session Window and waits for `ready`. appView mode
+   * popup 模式打开完整钱包根页面并等待 ready；没有独立协议页。appView mode
    * adopts `window.opener`, installs the listener, and sends the child `ready`
    * message without ever opening a fallback popup.
    *
@@ -592,6 +588,8 @@ export class KeymasterConnectClient {
    * @group Transport
    */
   close(): void {
+    // 取消仍可取消的请求；钱包窗口不是客户端的资源，始终由用户自己关闭。
+    for (const id of this.pending.keys()) this.postCancel(id);
     this.identityValue = null;
     this.bindingId = null;
     const error = new KeymasterTransportError("client_closed", "Keymaster client was closed");
@@ -602,15 +600,7 @@ export class KeymasterConnectClient {
       this.environment.removeMessageListener(this.handleMessage);
       this.listenerInstalled = false;
     }
-    try {
-      if (this.ownsSessionWindow && this.sessionWindow && !isWindowClosed(this.sessionWindow)) {
-        this.sessionWindow.close();
-      }
-    } catch {
-      // Cross-origin windows can become unreadable during teardown.
-    }
     this.sessionWindow = null;
-    this.ownsSessionWindow = false;
     this.setState("disconnected");
   }
 
@@ -627,19 +617,18 @@ export class KeymasterConnectClient {
     this.sessionWindow = this.environment.open(
       url.toString(),
       this.options.popupName,
-      popupFeatures(this.options.popupWidth, this.options.popupHeight)
+      ""
     );
     if (!this.sessionWindow) {
       this.setState("disconnected");
-      return Promise.reject(new KeymasterTransportError("popup_blocked", "Keymaster Session Window was blocked"));
+      return Promise.reject(new KeymasterTransportError("popup_blocked", "Keymaster wallet window was blocked"));
     }
-    this.ownsSessionWindow = true;
     this.startClosePolling();
     this.readyPromise = new Promise<void>((resolve, reject) => {
       this.readyResolve = resolve;
       this.readyReject = reject;
       this.readyTimer = this.environment.setTimeout(() => {
-        this.disconnect(new KeymasterTransportError("ready_timeout", "Timed out waiting for Keymaster ready"));
+        this.disconnect(new KeymasterTransportError("ready_timeout", "Timed out waiting for the wallet to initialize or unlock"));
       }, this.options.readyTimeoutMs);
     });
     return this.readyPromise;
@@ -653,12 +642,11 @@ export class KeymasterConnectClient {
       this.setState("disconnected");
       return Promise.reject(new KeymasterTransportError(
         code,
-        "No live Keymaster appView Session Window is available"
+        "No live Keymaster wallet opener is available"
       ));
     }
     this.installListener();
     this.sessionWindow = opener;
-    this.ownsSessionWindow = false;
     try {
       opener.postMessage({ v: PROTOCOL_VERSION, type: "ready" }, this.targetOrigin);
     } catch (cause) {
@@ -685,7 +673,7 @@ export class KeymasterConnectClient {
       return;
     }
     if (value.type === "closing") {
-      this.disconnect(new KeymasterTransportError("popup_closed", "Keymaster Session Window is closing"));
+      this.disconnect(new KeymasterTransportError("popup_closed", "Keymaster wallet connection is closing"));
       return;
     }
     if (value.type === "event") {
@@ -763,20 +751,13 @@ export class KeymasterConnectClient {
   }
 
   private disconnect(reason: unknown): void {
+    for (const id of this.pending.keys()) this.postCancel(id);
     this.identityValue = null;
     this.bindingId = null;
     this.rejectAll(reason);
     this.failReady(reason);
     this.stopClosePolling();
-    try {
-      if (this.ownsSessionWindow && this.sessionWindow && !isWindowClosed(this.sessionWindow)) {
-        this.sessionWindow.close();
-      }
-    } catch {
-      // Closing is best-effort.
-    }
     this.sessionWindow = null;
-    this.ownsSessionWindow = false;
     this.setState("disconnected");
   }
 
@@ -784,7 +765,7 @@ export class KeymasterConnectClient {
     this.stopClosePolling();
     this.closePoller = this.environment.setInterval(() => {
       if (this.sessionWindow && isWindowClosed(this.sessionWindow)) {
-        this.disconnect(new KeymasterTransportError("popup_closed", "Keymaster Session Window was closed"));
+        this.disconnect(new KeymasterTransportError("popup_closed", "Keymaster wallet window was closed"));
       }
     }, this.options.closePollMs);
   }
@@ -859,10 +840,6 @@ function normalizeHttpOrigin(input: string): string {
     throw new TypeError("targetOrigin must use http or https");
   }
   return url.origin;
-}
-
-function popupFeatures(width: number, height: number): string {
-  return `popup=yes,width=${Math.max(320, Math.trunc(width))},height=${Math.max(320, Math.trunc(height))}`;
 }
 
 function positiveNumber(value: number, name: string): number {

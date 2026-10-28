@@ -8,6 +8,8 @@ Keymaster Connect v1 的独立生产协议栈，包含 Client、公开契约和 
 npm install keymaster-connect@0.1.1
 ```
 
+当前工作树准备候选 **0.1.2**：App 主动连接改为打开完整钱包根页面 `/`，不再打开独立协议页；`close()`、错误和超时不关闭钱包窗口。候选尚未公共发布，以上安装命令仍指向当前公共版本，不提前要求消费方安装不存在的版本。完整说明见 [App 主动打开钱包](doc/site/concepts/popup-mode.md)。
+
 许可证沿用仓库原有 AGPL v3，见包内 LICENSE。
 
 ```ts
@@ -17,7 +19,7 @@ const connected = await client.login({ text: "连接钱包" });
 console.log(connected.networkIdentity);
 ```
 
-公开能力包括 Connect、Identity、Cipher、Payment、Channel、Storage 和 MSFile。首次连接不选择公钥或网络，后续业务使用接收端签发的连接绑定。钱包重置或 Worker 世代改变后旧绑定失效，App 必须显式重新连接。ready 只代表传输可用；logout 撤销连接授权，close 只关闭传输。取消是尽力通知，不表示已签名/广播的业务可以回滚。产品未上线，wire 固定为 v1，不维护已删除字段兼容分支。
+公开能力包括 Connect、Identity、Cipher、Payment、Channel、Storage 和 MSFile。首次连接不选择公钥或网络，后续业务使用接收端签发的连接绑定。钱包重置或 Worker 世代改变后旧绑定失效，App 必须显式重新连接。ready 只代表完整钱包已具备传输条件；logout 撤销连接授权，close 只关闭传输，不关闭用户的钱包窗口。取消是尽力通知，不表示已签名/广播的业务可以回滚。产品未上线，wire 固定为 v1，不维护已删除字段兼容分支。
 
 ## 钱包接收端
 

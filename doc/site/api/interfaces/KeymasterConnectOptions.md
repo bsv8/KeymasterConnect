@@ -10,11 +10,9 @@ Configuration for [KeymasterConnectClient](../classes/KeymasterConnectClient.md)
 | :--- | :--- | :---: | :--- |
 | [`targetOrigin`](#targetorigin) | `string` | Yes | Exact Keymaster deployment origin supplied by the host application. |
 | [`mode?`](#mode) | [`KeymasterConnectMode`](../type-aliases/KeymasterConnectMode.md) | No | `popup` for direct integrations; `appView` for apps launched by Keymaster. |
-| [`popupPath?`](#popuppath) | `string` | No | Session Window path relative to `targetOrigin`. |
+| [`popupPath?`](#popuppath) | `string` | No | 完整钱包页面路径，默认根页面；不是独立协议页。 |
 | [`popupName?`](#popupname) | `string` | No | Browser window name reused by direct integrations. |
-| [`popupWidth?`](#popupwidth) | `number` | No | — |
-| [`popupHeight?`](#popupheight) | `number` | No | — |
-| [`readyTimeoutMs?`](#readytimeoutms) | `number` | No | Maximum wait for a popup-mode `ready` message. |
+| [`readyTimeoutMs?`](#readytimeoutms) | `number` | No | 等待完整钱包初始化/解锁并发送 ready 的最长时间，默认两分钟；超时不关闭钱包。 |
 | [`requestTimeoutMs?`](#requesttimeoutms) | `number` | No | Default request timeout. |
 | [`closePollMs?`](#closepollms) | `number` | No | Session Window close detection interval. |
 | [`onEvent?`](#onevent) | (`event`) => `void` | No | 接收当前精确订阅频道上的已验签 Channel 事件。 |
@@ -43,7 +41,7 @@ Exact Keymaster deployment origin supplied by the host application.
 
 > `optional` **popupPath?**: `string`
 
-Session Window path relative to `targetOrigin`.
+完整钱包页面路径，默认根页面；不是独立协议页。
 
 ***
 
@@ -55,23 +53,11 @@ Browser window name reused by direct integrations.
 
 ***
 
-### popupWidth?
-
-> `optional` **popupWidth?**: `number`
-
-***
-
-### popupHeight?
-
-> `optional` **popupHeight?**: `number`
-
-***
-
 ### readyTimeoutMs?
 
 > `optional` **readyTimeoutMs?**: `number`
 
-Maximum wait for a popup-mode `ready` message. Defaults to 30 seconds.
+等待完整钱包初始化/解锁并发送 ready 的最长时间，默认两分钟；超时不关闭钱包。
 
 ***
 
