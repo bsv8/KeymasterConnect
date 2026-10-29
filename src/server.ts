@@ -38,6 +38,7 @@ export interface ReceiverRequest<M extends ProtocolMethod = ProtocolMethod> {
   readonly walletGeneration: string;
   readonly runGeneration: string;
   readonly bindingId?: string;
+  readonly authorizationId?: string;
   readonly signal: AbortSignal;
 }
 interface Binding { id: string; origin: string; identity: NetworkIdentity; walletGeneration: string; runGeneration: string; }
@@ -47,6 +48,17 @@ interface Pending { context: ReceiverRequest; abort: AbortController; }
 export function isEstablishing(method: string): boolean { return ["connect.login", "connect.resume", "connect.launch"].includes(method); }
 
 /** 生产钱包与闭环测试共用同一接收端，不内置测试业务或默认自动授权。 */
+/** 外部恢复控制只携带不透明授权引用，不能夹带业务参数或钱包选择器。 */
+export function parseReconnectMessage(data: unknown): import("./protocol.js").ProtocolReconnectMessage | null {
+  if (!data || typeof data !== "object") return null;
+  const value = data as Record<string, unknown>;
+  if (value.v !== PROTOCOL_VERSION || value.type !== "reconnect" || typeof value.id !== "string" || !value.id || value.id.length > 128
+    || typeof value.authorizationId !== "string" || !value.authorizationId || value.authorizationId.length > 128
+    || (value.bindingId !== undefined && typeof value.bindingId !== "string")
+    || Object.keys(value).some(key => !["v", "type", "id", "authorizationId", "bindingId"].includes(key))) return null;
+  return value as unknown as import("./protocol.js").ProtocolReconnectMessage;
+}
+
 export class KeymasterConnectReceiver {
   private readonly bindings = new Map<ConnectPeer, Binding>();
   private readonly pending = new Map<ConnectPeer, Map<string, Pending>>();
@@ -78,7 +90,9 @@ export class KeymasterConnectReceiver {
   /** 校验并签发请求上下文。重复在途 ID 被忽略；非法可信请求返回标准错误。 */
   async accept(event: ReceiverMessage): Promise<ReceiverRequest | null> {
     if (!this.isAllowedPeer(event)) return null;
-    const raw = event.data as Record<string, unknown> | null;
+    const reconnect = parseReconnectMessage(event.data);
+    // 持久授权由钱包宿主验证；Receiver 只把已登记来源的恢复控制转换为标准 resume。
+    const raw = reconnect ? { v: PROTOCOL_VERSION, type: "request", id: reconnect.id, method: "connect.resume", params: {} } : event.data as Record<string, unknown> | null;
     if (!raw || typeof raw !== "object" || raw.type !== "request") return null;
     // 重复 ID 不能借非法参数生成第二条错误响应并截断原请求的等待。
     if (typeof raw.id === "string" && this.pending.get(event.source)?.has(raw.id)) return null;
@@ -104,7 +118,7 @@ export class KeymasterConnectReceiver {
       const abort = new AbortController();
       const context: ReceiverRequest = Object.freeze({ ...parsed, source: event.source!, origin: event.origin,
         networkIdentity: identity, walletGeneration: before.walletGeneration, runGeneration: before.runGeneration,
-        bindingId: establishing ? undefined : binding!.id, signal: abort.signal });
+        bindingId: establishing ? undefined : binding!.id, ...(reconnect ? { authorizationId: reconnect.authorizationId } : {}), signal: abort.signal });
       this.isAllowedPeer(event, true);
       requests.set(parsed.id, { context, abort });
       return context;
@@ -170,6 +184,12 @@ export class KeymasterConnectReceiver {
     const lifecycle = this.options.lifecycle();
     if (!binding || binding.origin !== origin || binding.walletGeneration !== lifecycle.walletGeneration || binding.runGeneration !== lifecycle.runGeneration || !this.isAllowedPeer({ source: target, origin, data: null })) return;
     try { target.postMessage({ ...event, networkIdentity: binding.identity, bindingId: binding.id }, origin); } catch { /* 窗口退出不重试推送。 */ }
+  }
+
+  /** 只读核对现存瞬时绑定；恢复轮询不能不断替换仍有效的绑定或打断在途业务。 */
+  matchesBinding(source: ConnectPeer, origin: string, id: string | undefined): boolean {
+    const binding = this.bindings.get(source), lifecycle = this.options.lifecycle();
+    return !!binding && binding.id === id && binding.origin === origin && binding.walletGeneration === lifecycle.walletGeneration && binding.runGeneration === lifecycle.runGeneration && this.isAllowedPeer({ source, origin, data: null });
   }
 
   /** ready/closing 只承载生命周期，不携带授权或业务结果。 */

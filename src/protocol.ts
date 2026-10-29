@@ -665,6 +665,8 @@ export interface ConnectLoginParams {
 }
 
 export interface ConnectLoginResult {
+    /** 不透明恢复凭据，绑定原钱包、应用和精确来源；不得写入日志或 URL。 */
+    authorizationId: string;
     networkIdentity: NetworkIdentity;
     /** 本次 login 时一次解析的 claims 真值快照。 */
     resolvedClaims: Record<string, ResolvedClaimValue>;
@@ -679,6 +681,7 @@ export interface ConnectResumeParams {
 }
 
 export interface ConnectResumeResult {
+    authorizationId: string;
     networkIdentity: NetworkIdentity;
     resolvedClaims: Record<string, ResolvedClaimValue>;
     /**
@@ -705,6 +708,7 @@ export interface ConnectLaunchParams {
 }
 
 export interface ConnectLaunchResult {
+    authorizationId: string;
     networkIdentity: NetworkIdentity;
     resolvedClaims: Record<string, ResolvedClaimValue>;
     resolvedAt: number;
@@ -803,6 +807,14 @@ export type MethodResult<M extends ProtocolMethod = ProtocolMethod> = MethodResu
 export type ProtocolEventPayload =
   { v: typeof PROTOCOL_VERSION; type: "event"; event: "channel.message_received"; data: ChannelMessageReceivedEventData };
 export type ProtocolEventMessage = ProtocolEventPayload & { networkIdentity: NetworkIdentity; bindingId: string };
+/** 暂停恢复控制，不携带钱包选择参数，也不是业务请求重放。 */
+export interface ProtocolReconnectMessage {
+  v: typeof PROTOCOL_VERSION;
+  type: "reconnect";
+  id: string;
+  authorizationId: string;
+  bindingId?: string;
+}
 export interface ProtocolRequestMessage<M extends ProtocolMethod = ProtocolMethod> {
   v: typeof PROTOCOL_VERSION; type: "request"; id: string; method: M; params: MethodParams<M>; bindingId?: string;
 }

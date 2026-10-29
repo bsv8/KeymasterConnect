@@ -51,23 +51,23 @@ import {
   type StoragePutResult,
 } from "./protocol.js";
 
-/** SDK 获取完整钱包窗口的方向；popup 为 App 主动打开钱包，appView 为钱包启动 App。 */
-export type KeymasterConnectMode = "popup" | "appView";
+/** 应用只在钱包创建的跨源 iframe 内连接其父钱包。 */
+export type KeymasterConnectMode = "appView";
 
 /** Observable lifecycle of the browser transport. */
-export type KeymasterConnectState = "idle" | "opening" | "connected" | "disconnected";
+export type KeymasterConnectState = "idle" | "opening" | "connected" | "paused" | "disconnected";
 
 /** Failures produced by the browser transport before a protocol result exists. */
 export type KeymasterTransportErrorCode =
-  | "popup_blocked"
-  | "popup_closed"
+  | "wallet_closed"
   | "ready_timeout"
   | "request_timeout"
   | "send_failed"
-  | "no_opener"
+  | "not_embedded"
   | "appview_session_lost"
   | "client_closed"
-  | "unsupported_protocol";
+  | "unsupported_protocol"
+  | "wallet_paused";
 
 /** A browser transport failure. Protocol rejections use {@link KeymasterProtocolError}. */
 export class KeymasterTransportError extends Error {
@@ -103,8 +103,7 @@ export interface KeymasterRequestOptions {
 
 /** Injectable browser primitives used by tests and embedded runtimes. */
 export interface KeymasterBrowserEnvironment {
-  open(url: string, target: string, features: string): Window | null;
-  opener(): Window | null;
+  parent(): Window | null;
   addMessageListener(listener: (event: MessageEvent) => void): void;
   removeMessageListener(listener: (event: MessageEvent) => void): void;
   setTimeout(handler: () => void, timeoutMs: number): number;
@@ -118,12 +117,8 @@ export interface KeymasterBrowserEnvironment {
 export interface KeymasterConnectOptions {
   /** Exact Keymaster deployment origin supplied by the host application. */
   targetOrigin: string;
-  /** `popup` for direct integrations; `appView` for apps launched by Keymaster. */
+  /** 钱包启动的 iframe 应用；独立页面不提供拉起钱包入口。 */
   mode?: KeymasterConnectMode;
-  /** 完整钱包页面路径，默认根页面；不是独立协议页。 */
-  popupPath?: string;
-  /** Browser window name reused by direct integrations. */
-  popupName?: string;
   /** 等待完整钱包初始化/解锁并发送 ready 的最长时间，默认两分钟；超时不关闭钱包。 */
   readyTimeoutMs?: number;
   /** Default request timeout. Defaults to two minutes. */
@@ -147,9 +142,6 @@ interface PendingRequest {
   abortListener?: () => void;
 }
 
-const DEFAULT_POPUP_PATH = "/";
-// 每个客户端打开自己的钱包文档，避免复用其他 App 的窗口而继承错误 opener。
-const DEFAULT_POPUP_NAME = "_blank";
 const DEFAULT_READY_TIMEOUT_MS = 120_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
 const DEFAULT_CLOSE_POLL_MS = 500;
@@ -214,10 +206,8 @@ export class KeymasterConnectClient {
   /** Identity returned by the authenticated wallet, or null before establishment. */
   get networkIdentity(): Readonly<NetworkIdentity> | null { return this.identityValue; }
   private readonly targetOrigin: string;
-  private readonly mode: KeymasterConnectMode;
   private readonly environment: KeymasterBrowserEnvironment;
   private readonly options: Required<Pick<KeymasterConnectOptions,
-    "popupPath" | "popupName" |
     "readyTimeoutMs" | "requestTimeoutMs" | "closePollMs">> & KeymasterConnectOptions;
   private readonly pending = new Map<string, PendingRequest>();
   private stateValue: KeymasterConnectState = "idle";
@@ -228,15 +218,17 @@ export class KeymasterConnectClient {
   private readyReject: ((reason: unknown) => void) | null = null;
   private readyTimer: number | null = null;
   private closePoller: number | null = null;
+  private authorizationId: string | null = null;
+  private authorizedIdentity: Readonly<NetworkIdentity> | null = null;
+  private recoveryId: string | null = null;
+  private recoveryWaiters = new Set<{ resolve(result: ConnectResumeResult): void; reject(error: unknown): void }>();
 
   constructor(options: KeymasterConnectOptions) {
     if ("networkIdentity" in options) throw new TypeError("networkIdentity option has been removed; read identity from the connection result");
     this.targetOrigin = normalizeHttpOrigin(options.targetOrigin);
-    this.mode = options.mode ?? "popup";
+    if (options.mode !== undefined && options.mode !== "appView") throw new TypeError("Connect apps must be launched inside the wallet");
     this.options = {
       ...options,
-      popupPath: options.popupPath ?? DEFAULT_POPUP_PATH,
-      popupName: options.popupName ?? DEFAULT_POPUP_NAME,
       readyTimeoutMs: positiveNumber(options.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS, "readyTimeoutMs"),
       requestTimeoutMs: positiveNumber(options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS, "requestTimeoutMs"),
       closePollMs: positiveNumber(options.closePollMs ?? DEFAULT_CLOSE_POLL_MS, "closePollMs")
@@ -256,14 +248,12 @@ export class KeymasterConnectClient {
   /**
    * Establishes the browser transport.
    *
-   * popup 模式打开完整钱包根页面并等待 ready；没有独立协议页。appView mode
-   * adopts `window.opener`, installs the listener, and sends the child `ready`
-   * message without ever opening a fallback popup.
+   * 绑定浏览器真实父页面，精确校验来源；独立页面直接失败，不打开钱包窗口。
    *
    * @group Transport
    */
   connect(): Promise<void> {
-    return this.mode === "appView" ? this.connectAppView() : this.connectPopup();
+    return this.connectAppView();
   }
 
   /**
@@ -283,7 +273,9 @@ export class KeymasterConnectClient {
     for (const field of ["walletPublicKeyHex", "networkIdentity", "bsvNetwork", "assetId"]) {
       if (field in params) throw new TypeError(`Removed wallet selector: ${field}`);
     }
+    if (method === "connect.resume" && this.authorizationId) return this.continueConnection(options) as Promise<MethodResult<M>>;
     const establishing = ["connect.login", "connect.resume", "connect.launch"].includes(method);
+    if (!establishing && this.stateValue === "paused") throw new KeymasterTransportError("wallet_paused", "Wallet connection is paused; old business requests are never replayed");
     if (establishing && this.pending.size) throw new TypeError("Cannot establish a connection while requests are pending");
     if (!establishing && !this.bindingId) throw new KeymasterProtocolError("invalid_request", "Login, resume or launch before making business requests");
     if ([...this.pending.values()].some(request => ["connect.login", "connect.resume", "connect.launch"].includes(request.method))) throw new TypeError("Connection establishment is already pending");
@@ -294,7 +286,7 @@ export class KeymasterConnectClient {
 
     const target = this.sessionWindow;
     if (!target || isWindowClosed(target)) {
-      throw new KeymasterTransportError("popup_closed", "Keymaster Session Window is closed");
+      throw new KeymasterTransportError("wallet_closed", "Keymaster parent wallet is closed");
     }
     const requestId = options.requestId ?? this.environment.randomUUID();
     if (!requestId || this.pending.has(requestId)) {
@@ -377,9 +369,6 @@ export class KeymasterConnectClient {
    * @group Connect
    */
   launch(params: ConnectLaunchParams, options?: KeymasterRequestOptions): Promise<ConnectLaunchResult> {
-    if (this.mode !== "appView") {
-      return Promise.reject(new TypeError("connect.launch requires mode: \"appView\""));
-    }
     return this.request("connect.launch", params, options);
   }
 
@@ -600,55 +589,52 @@ export class KeymasterConnectClient {
       this.environment.removeMessageListener(this.handleMessage);
       this.listenerInstalled = false;
     }
-    this.sessionWindow = null;
-    this.setState("disconnected");
+    if (!this.authorizationId) this.sessionWindow = null;
+    this.recoveryId = null;
+    this.finishRecovery(undefined, error);
+    this.setState(this.authorizationId ? "paused" : "disconnected");
   }
 
-  private connectPopup(): Promise<void> {
-    if (this.isConnected()) return Promise.resolve();
-    if (this.readyPromise) return this.readyPromise;
-
-    const url = new URL(this.options.popupPath, `${this.targetOrigin}/`);
-    if (url.origin !== this.targetOrigin) {
-      return Promise.reject(new TypeError("popupPath must resolve inside targetOrigin"));
-    }
+  /** 恢复原父钱包连接；任何情况下都不另开窗口或重放旧业务。 */
+  private continueConnection(options: KeymasterRequestOptions): Promise<ConnectResumeResult> {
+    if (this.pending.size) return Promise.reject(new TypeError("Cannot resume while business requests are pending"));
     this.installListener();
-    this.setState("opening");
-    this.sessionWindow = this.environment.open(
-      url.toString(),
-      this.options.popupName,
-      ""
-    );
-    if (!this.sessionWindow) {
-      this.setState("disconnected");
-      return Promise.reject(new KeymasterTransportError("popup_blocked", "Keymaster wallet window was blocked"));
-    }
+    const parent = this.environment.parent();
+    if (!parent || isWindowClosed(parent)) return Promise.reject(new KeymasterTransportError("appview_session_lost", "No wallet parent is available; relaunch from the wallet"));
+    this.sessionWindow = parent;
+    this.pause(new KeymasterTransportError("wallet_paused", "Re-establishing the original wallet connection"));
     this.startClosePolling();
-    this.readyPromise = new Promise<void>((resolve, reject) => {
-      this.readyResolve = resolve;
-      this.readyReject = reject;
-      this.readyTimer = this.environment.setTimeout(() => {
-        this.disconnect(new KeymasterTransportError("ready_timeout", "Timed out waiting for the wallet to initialize or unlock"));
-      }, this.options.readyTimeoutMs);
+    return new Promise((resolve, reject) => {
+      const finish = (error?: unknown, result?: ConnectResumeResult) => {
+        this.environment.clearTimeout(timer);
+        options.signal?.removeEventListener("abort", aborted);
+        this.recoveryWaiters.delete(waiter);
+        if (error) reject(error); else resolve(result!);
+      };
+      const waiter = { resolve: (result: ConnectResumeResult) => finish(undefined, result), reject: (error: unknown) => finish(error) };
+      const aborted = () => finish(abortReason(options.signal!));
+      const timer = this.environment.setTimeout(() => finish(new KeymasterTransportError("request_timeout", "Timed out restoring wallet connection")), positiveNumber(options.timeoutMs ?? this.options.readyTimeoutMs, "timeoutMs"));
+      this.recoveryWaiters.add(waiter);
+      options.signal?.addEventListener("abort", aborted, { once: true });
+      this.sendRecovery();
     });
-    return this.readyPromise;
   }
 
   private connectAppView(): Promise<void> {
     if (this.isConnected()) return Promise.resolve();
-    const opener = this.environment.opener();
-    if (!opener || isWindowClosed(opener)) {
-      const code: KeymasterTransportErrorCode = this.stateValue === "idle" ? "no_opener" : "appview_session_lost";
+    const parent = this.environment.parent();
+    if (!parent || isWindowClosed(parent)) {
+      const code: KeymasterTransportErrorCode = this.stateValue === "idle" ? "not_embedded" : "appview_session_lost";
       this.setState("disconnected");
       return Promise.reject(new KeymasterTransportError(
         code,
-        "No live Keymaster wallet opener is available"
+        "No live wallet parent is available; launch the app from Keymaster"
       ));
     }
     this.installListener();
-    this.sessionWindow = opener;
+    this.sessionWindow = parent;
     try {
-      opener.postMessage({ v: PROTOCOL_VERSION, type: "ready" }, this.targetOrigin);
+      parent.postMessage({ v: PROTOCOL_VERSION, type: "ready" }, this.targetOrigin);
     } catch (cause) {
       this.sessionWindow = null;
       this.setState("disconnected");
@@ -668,12 +654,16 @@ export class KeymasterConnectClient {
       return;
     }
 
-    if (value.type === "ready" && this.mode === "popup") {
-      this.finishReady();
+    if (value.type === "ready") return;
+    if (value.type === "closing") {
+      if (this.authorizationId) this.pause(new KeymasterTransportError("wallet_paused", "Wallet runtime is unavailable"));
+      else this.disconnect(new KeymasterTransportError("wallet_closed", "Keymaster wallet connection is closing"));
       return;
     }
-    if (value.type === "closing") {
-      this.disconnect(new KeymasterTransportError("popup_closed", "Keymaster wallet connection is closing"));
+    if (value.type === "revoked" && value.authorizationId === this.authorizationId) {
+      this.authorizationId = null; this.authorizedIdentity = null; this.recoveryId = null;
+      this.finishRecovery(undefined, new KeymasterProtocolError("connection_expired", "Application connection authorization was revoked"));
+      this.disconnect(new KeymasterProtocolError("connection_expired", "Application connection authorization was revoked"));
       return;
     }
     if (value.type === "event") {
@@ -690,6 +680,19 @@ export class KeymasterConnectClient {
     if (value.type !== "result" || typeof value.id !== "string" || typeof value.ok !== "boolean") return;
 
     const result = event.data as ProtocolResultMessage;
+    if (this.authorizationId && result.id === this.recoveryId) {
+      if (!result.ok) { this.pause(new KeymasterProtocolError(result.error.code, result.error.message)); return; }
+      try {
+        const identity = validateNetworkIdentity(value.networkIdentity);
+        const restored = result.result as ConnectResumeResult;
+        if (!this.authorizedIdentity || !sameNetworkIdentity(identity, this.authorizedIdentity) || !sameNetworkIdentity(identity, validateNetworkIdentity(restored.networkIdentity))
+          || restored.authorizationId !== this.authorizationId || typeof value.bindingId !== "string" || !value.bindingId) throw new Error("Recovery must retain the original wallet and authorization");
+        if (this.bindingId !== value.bindingId) this.pause(new KeymasterTransportError("wallet_paused", "Wallet runtime was replaced"));
+        this.identityValue = Object.freeze({ ...identity }); this.bindingId = value.bindingId; this.recoveryId = null;
+        this.setState("connected"); this.finishRecovery(restored);
+      } catch (error) { this.pause(error); this.finishRecovery(undefined, error); }
+      return;
+    }
     const pending = this.pending.get(result.id);
     if (!pending) return;
     this.deletePending(result.id);
@@ -699,21 +702,22 @@ export class KeymasterConnectClient {
         pending.reject(new KeymasterProtocolError("invalid_request", "Malformed Keymaster error result"));
         return;
       }
-      if (result.error.code === "connection_expired") { this.identityValue = null; this.bindingId = null; }
+      if (result.error.code === "connection_expired") { if (this.authorizationId) this.pause(new KeymasterProtocolError(result.error.code, result.error.message)); else { this.identityValue = null; this.bindingId = null; } }
       pending.reject(new KeymasterProtocolError(result.error.code, result.error.message));
       return;
     }
     try {
       const identity = validateNetworkIdentity(value.networkIdentity);
       if (["connect.login", "connect.resume", "connect.launch"].includes(pending.method)) {
-        const connected = result.result as { networkIdentity: unknown };
-        if (!sameNetworkIdentity(identity, validateNetworkIdentity(connected.networkIdentity)) || typeof value.bindingId !== "string" || !value.bindingId) throw new Error("Invalid connection identity or binding");
+        const connected = result.result as { networkIdentity: unknown; authorizationId: string };
+        if (!sameNetworkIdentity(identity, validateNetworkIdentity(connected.networkIdentity)) || typeof value.bindingId !== "string" || !value.bindingId || typeof connected.authorizationId !== "string" || !connected.authorizationId) throw new Error("Invalid connection identity or binding");
         this.identityValue = Object.freeze({ ...identity });
+        this.authorizedIdentity = this.identityValue; this.authorizationId = connected.authorizationId; this.recoveryId = null;
         this.bindingId = value.bindingId;
       } else if (!this.identityValue || value.bindingId !== this.bindingId || !sameNetworkIdentity(this.identityValue, identity)) {
         throw new Error("Keymaster connection identity mismatch");
       }
-      if (pending.method === "connect.logout") { this.identityValue = null; this.bindingId = null; }
+      if (pending.method === "connect.logout") { this.identityValue = null; this.bindingId = null; this.authorizationId = null; this.authorizedIdentity = null; this.recoveryId = null; }
       pending.resolve(result.result);
     } catch (error) {
       pending.reject(new KeymasterProtocolError("invalid_request", errorMessage(error, "Invalid connection result")));
@@ -761,12 +765,31 @@ export class KeymasterConnectClient {
     this.setState("disconnected");
   }
 
+  /** 暂停仅撤销瞬时绑定和旧请求，持久授权引用及原身份留作恢复校验。 */
+  private pause(reason: unknown): void {
+    this.identityValue = null; this.bindingId = null;
+    this.rejectAll(reason); this.failReady(reason);
+    this.setState("paused");
+  }
+
+  private sendRecovery(): void {
+    if (!this.authorizationId || !this.sessionWindow || isWindowClosed(this.sessionWindow)) return;
+    this.recoveryId ??= this.environment.randomUUID();
+    try { this.sessionWindow.postMessage({ v: PROTOCOL_VERSION, type: "reconnect", id: this.recoveryId, authorizationId: this.authorizationId, ...(this.bindingId ? { bindingId: this.bindingId } : {}) }, this.targetOrigin); }
+    catch (error) { this.pause(error); }
+  }
+
+  private finishRecovery(result?: ConnectResumeResult, error?: unknown): void {
+    for (const waiter of [...this.recoveryWaiters]) { if (error) waiter.reject(error); else if (result) waiter.resolve(result); }
+  }
+
   private startClosePolling(): void {
     this.stopClosePolling();
     this.closePoller = this.environment.setInterval(() => {
       if (this.sessionWindow && isWindowClosed(this.sessionWindow)) {
-        this.disconnect(new KeymasterTransportError("popup_closed", "Keymaster wallet window was closed"));
-      }
+        if (this.authorizationId) { if (this.stateValue !== "paused") this.pause(new KeymasterTransportError("wallet_paused", "Wallet window is closed")); }
+        else this.disconnect(new KeymasterTransportError("wallet_closed", "Keymaster parent wallet was closed"));
+      } else this.sendRecovery();
     }, this.options.closePollMs);
   }
 
@@ -822,8 +845,7 @@ export function createBrowserEnvironment(): KeymasterBrowserEnvironment {
     throw new TypeError("keymaster-connect requires a browser Window or an explicit environment");
   }
   return {
-    open: (url, target, features) => window.open(url, target, features),
-    opener: () => window.opener,
+    parent: () => window.parent !== window ? window.parent : null,
     addMessageListener: (listener) => window.addEventListener("message", listener),
     removeMessageListener: (listener) => window.removeEventListener("message", listener),
     setTimeout: (handler, timeoutMs) => window.setTimeout(handler, timeoutMs),
