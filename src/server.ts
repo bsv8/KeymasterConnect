@@ -7,6 +7,8 @@ import {
 import { parseRequestMessage, parseCancelMessage, ProtocolValidationError, assertOriginMatches } from "./validation.js";
 export * from "./validation.js";
 export * from "./appIdentity.js";
+export * from "./tools.js";
+export * from "./toolReceiver.js";
 export type { ProtocolEventPayload } from "./protocol.js";
 
 /** 窗口对象只作为消息源身份与发送目标；不读取跨源页面内容。 */

@@ -1,4 +1,5 @@
 /** Connect v1 公开契约。独立于钱包内部执行 DTO、能力框架和持久化。 */
+export type { AiToolSchema, AiToolDefinition, AiToolsRegistered, AiToolMessage } from "./tools.js";
 
 /** 身份网络在创建/导入时确定；公钥相同也不能跨网复用业务身份。 */
 export type BsvNetwork = "main" | "test";

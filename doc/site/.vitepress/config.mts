@@ -59,6 +59,7 @@ export default defineConfig({
             { text: "Popup 模式", link: "/concepts/popup-mode" },
             { text: "appView mode", link: "/concepts/appview-mode" },
             { text: "二进制数据", link: "/concepts/binary-data" },
+            { text: "AI 工具（源码候选）", link: "/concepts/ai-tools" },
             { text: "安全模型", link: "/concepts/security" }
           ]
         }

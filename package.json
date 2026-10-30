@@ -1,6 +1,6 @@
 {
   "name": "keymaster-connect",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Keymaster Connect v1 的独立客户端与接收端协议栈",
   "type": "module",
   "repository": { "type": "git", "url": "git+https://github.com/bsv8/KeymasterConnect.git" },

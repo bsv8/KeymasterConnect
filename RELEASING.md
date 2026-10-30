@@ -1,8 +1,8 @@
 # 发布 keymaster-connect
 
-仓库根目录就是发布对象 **keymaster-connect@0.1.2（候选）**；`doc/` 是私有文档子项目，不发布。无 npm scope/org；协议保持 v1，许可证沿用原 LICENSE（AGPL v3）。
+仓库根目录就是发布对象 **keymaster-connect@0.1.4**；`doc/` 是私有文档子项目，不发布。无 npm scope/org；协议保持 v1，许可证沿用原 LICENSE（AGPL v3）。
 
-`0.1.1` 已公共发布，wire 仍固定为 1；不要重复发布已存在的版本。当前 0.1.2 是完整钱包连接候选，尚未执行公共发布。需完成候选回归，再由发布者执行有效的 npm 授权及发布。
+`0.1.3` 已公共发布，wire 仍固定为 1；不要重复发布已存在的版本。0.1.4 增加 AI 工具注册与反向调用，支持 iframe/appView/popup 三种连接模式，并区分缺少 opener 与未嵌入的错误。发布前需完成候选回归及有效的 npm 授权；是否已公共发布以注册表查询为准。
 
 ## 发布前检查
 
@@ -34,13 +34,13 @@ npm publish --access public --tag latest --auth-type=web --registry=https://regi
 ## 发布后再迁移消费方
 
 ```sh
-npm view keymaster-connect@0.1.2 name version dist.integrity dist-tags --registry=https://registry.npmjs.org/
+npm view keymaster-connect@0.1.4 name version dist.integrity dist-tags --registry=https://registry.npmjs.org/
 ```
 
-确认注册表已有正确的 `keymaster-connect@0.1.2` 后，在 Demo 执行 `npm install --save-exact keymaster-connect@0.1.2` 更新依赖与 lockfile。钱包消费方升级另行安排。精确依赖为：
+确认注册表已有正确的 `keymaster-connect@0.1.4` 后，在 Demo 执行 `npm install --save-exact keymaster-connect@0.1.4` 更新依赖与 lockfile。钱包消费方升级另行安排。精确依赖为：
 
 ```json
-{ "dependencies": { "keymaster-connect": "0.1.2" } }
+{ "dependencies": { "keymaster-connect": "0.1.4" } }
 ```
 
 同时更新 lockfile，删除长期 vendor 安装包、相关更新脚本和钱包对本地 SDK workspace 的依赖/构建钩子，复跑独立构建及集成回归。公开版本尚不存在时不提前切换，以免再次破坏安装。
