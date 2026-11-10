@@ -536,6 +536,24 @@ export class KeymasterConnectClient {
   }
 
   /**
+   * 可选加密写入：向钱包提交明文，钱包以当前钱包密钥和 App 公钥隔离后加密保存。
+   * 路径、条件创建语义与 storagePut 相同，size 返回明文字节数；不会返回加密密钥。
+   * @group Storage
+   */
+  storagePutEncrypted(params: StoragePutParams, options?: KeymasterRequestOptions): Promise<StoragePutResult> {
+    return this.request("storage.encrypted.put", params, options);
+  }
+
+  /**
+   * 可选加密读取：仅同一钱包能解密；offset/length 作用于明文，ifMatch 仍比较远端版本。
+   * 明文对象、错误格式、篡改或密钥不匹配均失败，不自动回退为普通读取。
+   * @group Storage
+   */
+  storageGetEncrypted(params: StorageGetParams, options?: KeymasterRequestOptions): Promise<StorageGetResult> {
+    return this.request("storage.encrypted.get", params, options);
+  }
+
+  /**
    * Calls `storage.delete` to delete an app-scoped object.
    *
    * @group Storage

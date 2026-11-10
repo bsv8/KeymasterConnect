@@ -738,6 +738,8 @@ export const PROTOCOL_METHODS = [
     "storage.directory.delete",
     "storage.put",
     "storage.get",
+    "storage.encrypted.put",
+    "storage.encrypted.get",
     "storage.delete",
     // MSFile 对外方法族，见 docs/MSFile.md。与 storage.* 同为
     // session-bound 且强制要求 verified App Identity；Seed/Block 显式区分，
@@ -771,7 +773,9 @@ export interface MethodParamsMap {
     "storage.directory.create": StorageDirectoryParams;
     "storage.directory.delete": StorageDirectoryParams;
     "storage.put": StoragePutParams;
+    "storage.encrypted.put": StoragePutParams;
     "storage.get": StorageGetParams;
+    "storage.encrypted.get": StorageGetParams;
     "storage.delete": StorageDeleteParams;
     "msfile.stat": MsFileStatParams;
     "msfile.seed.read": MsFileSeedReadParams;
@@ -796,7 +800,9 @@ export interface MethodResultMap {
     "storage.directory.create": StorageDirectoryResult;
     "storage.directory.delete": StorageDirectoryResult;
     "storage.put": StoragePutResult;
+    "storage.encrypted.put": StoragePutResult;
     "storage.get": StorageGetResult;
+    "storage.encrypted.get": StorageGetResult;
     "storage.delete": StorageDeleteResult;
     "msfile.stat": MsFileStatResult;
     "msfile.seed.read": MsFileReadResult;

@@ -724,7 +724,9 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
         case "storage.list": normalized = validateStorageListParams(params); break;
         case "storage.directory.create": normalized = validateStorageDirectoryParams(params, method, true); break;
         case "storage.directory.delete": normalized = validateStorageDirectoryParams(params, method, false); break;
+        case "storage.encrypted.put":
         case "storage.put": normalized = validateStoragePutParams(params); break;
+        case "storage.encrypted.get":
         case "storage.get": normalized = validateStorageGetParams(params); break;
         case "storage.delete": normalized = validateStorageDeleteParams(params); break;
         case "msfile.stat": normalized = validateMsFileStatParams(params); break;
