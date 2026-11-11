@@ -165,8 +165,20 @@ export class KeymasterConnectReceiver {
       const connected = result as { networkIdentity?: unknown; walletPublicKeyHex?: unknown; ownerPublicKeyHex?: unknown };
       if (!sameNetworkIdentity(validateNetworkIdentity(connected.networkIdentity), context.networkIdentity) || "walletPublicKeyHex" in connected || "ownerPublicKeyHex" in connected) throw new ProtocolValidationError("invalid_request", "Invalid public connection result");
       publicResult = { ...result, networkIdentity: context.networkIdentity } as MethodResult;
-      bindingId = this.options.randomUUID?.() || crypto.randomUUID();
-      this.bindings.set(context.source, { id: bindingId, origin: context.origin, identity: context.networkIdentity, walletGeneration: context.walletGeneration, runGeneration: context.runGeneration });
+      // resume 心跳必须复用仍在同一运行代际的有效 binding。每次 resume 都
+      // 轮换 bindingId 会被客户端判定为“runtime replaced”，并拒绝在途业务。
+      const existing = this.bindings.get(context.source);
+      const reusable = context.method === "connect.resume" && existing
+        && existing.origin === context.origin
+        && existing.walletGeneration === context.walletGeneration
+        && existing.runGeneration === context.runGeneration
+        && sameNetworkIdentity(existing.identity, context.networkIdentity);
+      if (reusable) {
+        bindingId = existing.id;
+      } else {
+        bindingId = this.options.randomUUID?.() || crypto.randomUUID();
+        this.bindings.set(context.source, { id: bindingId, origin: context.origin, identity: context.networkIdentity, walletGeneration: context.walletGeneration, runGeneration: context.runGeneration });
+      }
     }
     this.finish(context);
     if (context.method === "connect.logout") this.bindings.delete(context.source);

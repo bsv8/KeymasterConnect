@@ -856,6 +856,10 @@ export class KeymasterConnectClient {
 
   private sendRecovery(): void {
     if (!this.authorizationId || !this.sessionWindow || isWindowClosed(this.sessionWindow)) return;
+    // 显式建立连接期间不发恢复心跳：旧授权的失效结果不能打断正在等待审批的
+    // login/resume/launch；建立完成后心跳以新授权恢复。
+    if (this.stateValue === "opening") return;
+    if ([...this.pending.values()].some(request => ["connect.login", "connect.resume", "connect.launch"].includes(request.method))) return;
     this.recoveryId ??= this.environment.randomUUID();
     try { this.sessionWindow.postMessage({ v: PROTOCOL_VERSION, type: "reconnect", id: this.recoveryId, authorizationId: this.authorizationId, ...(this.bindingId ? { bindingId: this.bindingId } : {}) }, this.targetOrigin); }
     catch (error) { this.pause(error); }
