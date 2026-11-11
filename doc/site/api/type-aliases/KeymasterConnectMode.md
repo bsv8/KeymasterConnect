@@ -2,6 +2,6 @@
 
 # Type Alias: KeymasterConnectMode
 
-> **KeymasterConnectMode** = `"popup"` \| `"appView"`
+> **KeymasterConnectMode** = `"iframe"` \| `"appView"` \| `"popup"`
 
-SDK 获取完整钱包窗口的方向；popup 为 App 主动打开钱包，appView 为钱包启动 App。
+iframe：钱包内嵌；appView：钱包弹出 App；popup：App 主动打开钱包。

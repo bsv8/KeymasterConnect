@@ -19,7 +19,9 @@ const connected = await client.login({ text: "连接钱包" });
 console.log(connected.networkIdentity);
 ```
 
-公开能力包括 Connect、Identity、Cipher、Payment、Channel、Storage 和 MSFile。首次连接不选择公钥或网络，后续业务使用接收端签发的连接绑定。钱包重置或 Worker 世代改变后旧绑定失效，App 必须显式重新连接。ready 只代表完整钱包已具备传输条件；logout 撤销连接授权，close 只关闭传输，不关闭用户的钱包窗口。取消是尽力通知，不表示已签名/广播的业务可以回滚。产品未上线，wire 固定为 v1，不维护已删除字段兼容分支。
+公开能力包括 Connect、Identity、Cipher、Payment（outputs 数组）、Channel、Storage 和 MSFile。首次连接不选择公钥或网络，后续业务使用接收端签发的连接绑定。钱包重置或 Worker 世代改变后旧绑定失效，App 必须显式重新连接。ready 只代表完整钱包已具备传输条件；logout 撤销连接授权，close 只关闭传输，不关闭用户的钱包窗口。取消是尽力通知，不表示已签名/广播的业务可以回滚。产品未上线，wire 固定为 v1，不维护已删除字段兼容分支。
+
+`payment.pay` 为 outputs 模型：`{ clientRequestId, outputs: [{ amount, script }] }`，顺序即链上顺序，找零由钱包追加；旧 `channelId/paymentType/businessKind/amountSatoshis/recipient/feeRate` 字段与 `payment.channel.register`、`p2pkh.transfer` 已移除。脚本解释经独立子入口 `keymaster-connect/script`（`interpretLockingScript`）供钱包与 CLI Web 展示，不决定是否允许支付。
 
 ## AI 工具（0.1.4）
 

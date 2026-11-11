@@ -24,6 +24,10 @@
         "link": "/api/classes/KeymasterConnectReceiver.md"
       },
       {
+        "text": "KeymasterAiToolReceiver",
+        "link": "/api/classes/KeymasterAiToolReceiver.md"
+      },
+      {
         "text": "ProtocolValidationError",
         "link": "/api/classes/ProtocolValidationError.md"
       }
@@ -96,6 +100,30 @@
       {
         "text": "isEstablishing",
         "link": "/api/functions/isEstablishing.md"
+      },
+      {
+        "text": "parseReconnectMessage",
+        "link": "/api/functions/parseReconnectMessage.md"
+      },
+      {
+        "text": "assertToolJson",
+        "link": "/api/functions/assertToolJson.md"
+      },
+      {
+        "text": "assertToolPayload",
+        "link": "/api/functions/assertToolPayload.md"
+      },
+      {
+        "text": "parseToolDefinitions",
+        "link": "/api/functions/parseToolDefinitions.md"
+      },
+      {
+        "text": "validateToolArguments",
+        "link": "/api/functions/validateToolArguments.md"
+      },
+      {
+        "text": "isAiToolMessage",
+        "link": "/api/functions/isAiToolMessage.md"
       },
       {
         "text": "assertOriginMatches",
@@ -320,20 +348,8 @@
         "link": "/api/interfaces/CipherDecryptResult.md"
       },
       {
-        "text": "PaymentChannelRegisterParams",
-        "link": "/api/interfaces/PaymentChannelRegisterParams.md"
-      },
-      {
-        "text": "PaymentChannelRegisterResult",
-        "link": "/api/interfaces/PaymentChannelRegisterResult.md"
-      },
-      {
-        "text": "P2pkhTransferParams",
-        "link": "/api/interfaces/P2pkhTransferParams.md"
-      },
-      {
-        "text": "P2pkhTransferResult",
-        "link": "/api/interfaces/P2pkhTransferResult.md"
+        "text": "PaymentOutput",
+        "link": "/api/interfaces/PaymentOutput.md"
       },
       {
         "text": "PaymentPayParams",
@@ -392,6 +408,10 @@
         "link": "/api/interfaces/MethodResultMap.md"
       },
       {
+        "text": "ProtocolReconnectMessage",
+        "link": "/api/interfaces/ProtocolReconnectMessage.md"
+      },
+      {
         "text": "ProtocolRequestMessage",
         "link": "/api/interfaces/ProtocolRequestMessage.md"
       },
@@ -414,6 +434,26 @@
       {
         "text": "ReceiverRequest",
         "link": "/api/interfaces/ReceiverRequest.md"
+      },
+      {
+        "text": "AiToolReceiverOptions",
+        "link": "/api/interfaces/AiToolReceiverOptions.md"
+      },
+      {
+        "text": "AiToolSchema",
+        "link": "/api/interfaces/AiToolSchema.md"
+      },
+      {
+        "text": "AiToolDefinition",
+        "link": "/api/interfaces/AiToolDefinition.md"
+      },
+      {
+        "text": "AiTool",
+        "link": "/api/interfaces/AiTool.md"
+      },
+      {
+        "text": "AiToolsRegistered",
+        "link": "/api/interfaces/AiToolsRegistered.md"
       }
     ]
   },
@@ -498,20 +538,8 @@
         "link": "/api/type-aliases/P2pkhTransferAssetId.md"
       },
       {
-        "text": "ConnectPaymentType",
-        "link": "/api/type-aliases/ConnectPaymentType.md"
-      },
-      {
-        "text": "ConnectPaymentRecipientOwnership",
-        "link": "/api/type-aliases/ConnectPaymentRecipientOwnership.md"
-      },
-      {
         "text": "ConnectPaymentStatus",
         "link": "/api/type-aliases/ConnectPaymentStatus.md"
-      },
-      {
-        "text": "ConnectPaymentRecipient",
-        "link": "/api/type-aliases/ConnectPaymentRecipient.md"
       },
       {
         "text": "PaymentStatusResult",
@@ -544,6 +572,10 @@
       {
         "text": "ReceiverPeerPolicy",
         "link": "/api/type-aliases/ReceiverPeerPolicy.md"
+      },
+      {
+        "text": "AiToolMessage",
+        "link": "/api/type-aliases/AiToolMessage.md"
       }
     ]
   },
@@ -610,6 +642,10 @@
       {
         "text": "PROTOCOL_METHODS",
         "link": "/api/variables/PROTOCOL_METHODS.md"
+      },
+      {
+        "text": "AI_TOOLS_MAX_JSON_CHARS",
+        "link": "/api/variables/AI_TOOLS_MAX_JSON_CHARS.md"
       }
     ]
   }

@@ -6,12 +6,19 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
+| [`authorizationId`](#authorizationid) | `string` | Yes | — |
 | [`networkIdentity`](#networkidentity) | [`NetworkIdentity`](NetworkIdentity.md) | Yes | — |
 | [`resolvedClaims`](#resolvedclaims) | `Record`\<`string`, [`ResolvedClaimValue`](../type-aliases/ResolvedClaimValue.md)\> | Yes | — |
 | [`resolvedAt`](#resolvedat) | `number` | Yes | — |
 | [`appIdentity?`](#appidentity) | [`VerifiedAppIdentity`](VerifiedAppIdentity.md) | No | — |
 
 ## Properties
+
+### authorizationId
+
+> **authorizationId**: `string`
+
+***
 
 ### networkIdentity
 

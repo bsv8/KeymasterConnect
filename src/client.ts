@@ -29,14 +29,10 @@ import {
   type MsFileSeedReadParams,
   type MsFileStatParams,
   type MsFileStatResult,
-  type P2pkhTransferParams,
-  type P2pkhTransferResult,
   type PaymentPayParams,
   type PaymentPayResult,
   type PaymentStatusParams,
   type PaymentStatusResult,
-  type PaymentChannelRegisterParams,
-  type PaymentChannelRegisterResult,
   type ProtocolErrorCode,
   type ProtocolEventMessage,
   type ProtocolMethod,
@@ -194,8 +190,8 @@ const DEFAULT_CLOSE_POLL_MS = 500;
  * @groupDescription Cipher
  * Encrypt and decrypt origin-bound application data.
  *
- * @groupDescription Transfer
- * Request a controlled BSV transfer.
+ * @groupDescription Payment
+ * Submit business outputs and query payment status.
  *
  * @groupDescription Channel
  * Publish JSON content and manage exact-channel subscriptions. Incoming
@@ -445,19 +441,6 @@ export class KeymasterConnectClient {
   /** 按原业务 ID 只读查询付款状态，不自动重付或更换 ID。 */
   paymentStatus(params: PaymentStatusParams, options?: KeymasterRequestOptions): Promise<PaymentStatusResult> {
     return this.request("payment.status", params, options);
-  }
-
-  /**
-   * @deprecated Connect v1 接收端拒绝旧转账方法，使用 paymentPay。
-   * @group Transfer
-   */
-  p2pkhTransfer(params: P2pkhTransferParams, options?: KeymasterRequestOptions): Promise<P2pkhTransferResult> {
-    return this.request("p2pkh.transfer", params, options);
-  }
-
-  /** 注册零额度渠道；用户在钱包设置额度后，付款携带返回的 channelId。 */
-  registerPaymentChannel(params: PaymentChannelRegisterParams, options?: KeymasterRequestOptions): Promise<PaymentChannelRegisterResult> {
-    return this.request("payment.channel.register", params, options);
   }
 
   /**

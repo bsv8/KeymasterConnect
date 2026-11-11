@@ -13,7 +13,8 @@
   "exports": {
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" },
     "./protocol": { "types": "./dist/protocol.d.ts", "import": "./dist/protocol.js", "default": "./dist/protocol.js" },
-    "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js", "default": "./dist/server.js" }
+    "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js", "default": "./dist/server.js" },
+    "./script": { "types": "./dist/script.d.ts", "import": "./dist/script.js", "default": "./dist/script.js" }
   },
   "scripts": {
     "prepublishOnly": "npm run typecheck && npm run build",

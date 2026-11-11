@@ -219,32 +219,6 @@ Calls `cipher.decrypt` to decrypt data previously returned by
 
 `Promise`\<[`CipherDecryptResult`](../interfaces/CipherDecryptResult.md)\>
 
-## Transfer
-
-Request a controlled BSV transfer.
-
-### ~~p2pkhTransfer()~~
-
-> **p2pkhTransfer**(`params`, `options?`): `Promise`\<[`P2pkhTransferResult`](../interfaces/P2pkhTransferResult.md)\>
-
-#### Parameters
-
-##### params
-
-[`P2pkhTransferParams`](../interfaces/P2pkhTransferParams.md)
-
-##### options?
-
-[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
-
-#### Returns
-
-`Promise`\<[`P2pkhTransferResult`](../interfaces/P2pkhTransferResult.md)\>
-
-#### Deprecated
-
-Connect v1 接收端拒绝旧转账方法，使用 paymentPay。
-
 ## Channel
 
 Publish JSON content and manage exact-channel subscriptions. Incoming
@@ -406,6 +380,52 @@ Calls `storage.get` to read an app-scoped object.
 
 ***
 
+### storagePutEncrypted()
+
+> **storagePutEncrypted**(`params`, `options?`): `Promise`\<[`StoragePutResult`](../interfaces/StoragePutResult.md)\>
+
+可选加密写入：向钱包提交明文，钱包以当前钱包密钥和 App 公钥隔离后加密保存。
+路径、条件创建语义与 storagePut 相同，size 返回明文字节数；不会返回加密密钥。
+
+#### Parameters
+
+##### params
+
+[`StoragePutParams`](../interfaces/StoragePutParams.md)
+
+##### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+#### Returns
+
+`Promise`\<[`StoragePutResult`](../interfaces/StoragePutResult.md)\>
+
+***
+
+### storageGetEncrypted()
+
+> **storageGetEncrypted**(`params`, `options?`): `Promise`\<[`StorageGetResult`](../interfaces/StorageGetResult.md)\>
+
+可选加密读取：仅同一钱包能解密；offset/length 作用于明文，ifMatch 仍比较远端版本。
+明文对象、错误格式、篡改或密钥不匹配均失败，不自动回退为普通读取。
+
+#### Parameters
+
+##### params
+
+[`StorageGetParams`](../interfaces/StorageGetParams.md)
+
+##### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+#### Returns
+
+`Promise`\<[`StorageGetResult`](../interfaces/StorageGetResult.md)\>
+
+***
+
 ### storageDelete()
 
 > **storageDelete**(`params`, `options?`): `Promise`\<[`StorageDeleteResult`](../interfaces/StorageDeleteResult.md)\>
@@ -450,9 +470,7 @@ Current browser transport state.
 
 Establishes the browser transport.
 
-popup 模式打开完整钱包根页面并等待 ready；没有独立协议页。appView mode
-adopts `window.opener`, installs the listener, and sends the child `ready`
-message without ever opening a fallback popup.
+iframe / appView 绑定真实 parent / opener；popup 打开完整钱包等待 ready。
 
 #### Returns
 
@@ -471,7 +489,7 @@ inference.
 
 ##### M
 
-`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"p2pkh.transfer"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.channel.register"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
+`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"payment.pay"` \| `"payment.status"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"storage.list"` \| `"storage.directory.create"` \| `"storage.directory.delete"` \| `"storage.put"` \| `"storage.get"` \| `"storage.encrypted.put"` \| `"storage.encrypted.get"` \| `"storage.delete"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
 
 #### Parameters
 
@@ -559,6 +577,28 @@ Identity returned by the authenticated wallet, or null before establishment.
 
 ## Methods
 
+### registerTools()
+
+> **registerTools**(`tools`, `options?`): `Promise`\<[`AiToolsRegistered`](../interfaces/AiToolsRegistered.md)\>
+
+Replace this connection's tool set. Empty array unregisters all tools. Re-register explicitly after reconnect.
+
+#### Parameters
+
+##### tools
+
+[`AiTool`](../interfaces/AiTool.md)[]
+
+##### options?
+
+`Pick`\<[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md), `"signal"` \| `"timeoutMs"`\> = `{}`
+
+#### Returns
+
+`Promise`\<[`AiToolsRegistered`](../interfaces/AiToolsRegistered.md)\>
+
+***
+
 ### paymentStatus()
 
 > **paymentStatus**(`params`, `options?`): `Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
@@ -578,28 +618,6 @@ Identity returned by the authenticated wallet, or null before establishment.
 #### Returns
 
 `Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
-
-***
-
-### registerPaymentChannel()
-
-> **registerPaymentChannel**(`params`, `options?`): `Promise`\<[`PaymentChannelRegisterResult`](../interfaces/PaymentChannelRegisterResult.md)\>
-
-注册零额度渠道；用户在钱包设置额度后，付款携带返回的 channelId。
-
-#### Parameters
-
-##### params
-
-[`PaymentChannelRegisterParams`](../interfaces/PaymentChannelRegisterParams.md)
-
-##### options?
-
-[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
-
-#### Returns
-
-`Promise`\<[`PaymentChannelRegisterResult`](../interfaces/PaymentChannelRegisterResult.md)\>
 
 ## MSFile
 
@@ -673,6 +691,8 @@ Like [msfileReadSeed](#msfilereadseed), no caller-supplied price is accepted.
 `Promise`\<[`MsFileReadResult`](../interfaces/MsFileReadResult.md)\>
 
 ## Payment
+
+Submit business outputs and query payment status.
 
 ### paymentPay()
 

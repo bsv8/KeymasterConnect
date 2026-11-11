@@ -40,6 +40,16 @@ Injectable browser primitives used by tests and embedded runtimes.
 
 ***
 
+### parent()
+
+> **parent**(): `Window` \| `null`
+
+#### Returns
+
+`Window` \| `null`
+
+***
+
 ### addMessageListener()
 
 > **addMessageListener**(`listener`): `void`

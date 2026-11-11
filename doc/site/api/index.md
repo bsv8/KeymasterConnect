@@ -7,6 +7,7 @@
 - [KeymasterProtocolError](classes/KeymasterProtocolError.md)
 - [KeymasterConnectClient](classes/KeymasterConnectClient.md)
 - [KeymasterConnectReceiver](classes/KeymasterConnectReceiver.md)
+- [KeymasterAiToolReceiver](classes/KeymasterAiToolReceiver.md)
 - [ProtocolValidationError](classes/ProtocolValidationError.md)
 
 ## Functions
@@ -27,6 +28,12 @@
 - [sameNetworkIdentity](functions/sameNetworkIdentity.md)
 - [isValidMsFileSourceId](functions/isValidMsFileSourceId.md)
 - [isEstablishing](functions/isEstablishing.md)
+- [parseReconnectMessage](functions/parseReconnectMessage.md)
+- [assertToolJson](functions/assertToolJson.md)
+- [assertToolPayload](functions/assertToolPayload.md)
+- [parseToolDefinitions](functions/parseToolDefinitions.md)
+- [validateToolArguments](functions/validateToolArguments.md)
+- [isAiToolMessage](functions/isAiToolMessage.md)
 - [assertOriginMatches](functions/assertOriginMatches.md)
 - [validateExactChannel](functions/validateExactChannel.md)
 - [assertMainnetP2pkhAddress](functions/assertMainnetP2pkhAddress.md)
@@ -84,10 +91,7 @@
 - [CipherEncryptResult](interfaces/CipherEncryptResult.md)
 - [CipherDecryptParams](interfaces/CipherDecryptParams.md)
 - [CipherDecryptResult](interfaces/CipherDecryptResult.md)
-- [PaymentChannelRegisterParams](interfaces/PaymentChannelRegisterParams.md)
-- [PaymentChannelRegisterResult](interfaces/PaymentChannelRegisterResult.md)
-- [P2pkhTransferParams](interfaces/P2pkhTransferParams.md)
-- [P2pkhTransferResult](interfaces/P2pkhTransferResult.md)
+- [PaymentOutput](interfaces/PaymentOutput.md)
 - [PaymentPayParams](interfaces/PaymentPayParams.md)
 - [PaymentReleaseSummary](interfaces/PaymentReleaseSummary.md)
 - [PaymentPayResult](interfaces/PaymentPayResult.md)
@@ -102,12 +106,18 @@
 - [ConnectLaunchResult](interfaces/ConnectLaunchResult.md)
 - [MethodParamsMap](interfaces/MethodParamsMap.md)
 - [MethodResultMap](interfaces/MethodResultMap.md)
+- [ProtocolReconnectMessage](interfaces/ProtocolReconnectMessage.md)
 - [ProtocolRequestMessage](interfaces/ProtocolRequestMessage.md)
 - [ConnectPeer](interfaces/ConnectPeer.md)
 - [ReceiverLifecycle](interfaces/ReceiverLifecycle.md)
 - [ReceiverMessage](interfaces/ReceiverMessage.md)
 - [ConnectReceiverOptions](interfaces/ConnectReceiverOptions.md)
 - [ReceiverRequest](interfaces/ReceiverRequest.md)
+- [AiToolReceiverOptions](interfaces/AiToolReceiverOptions.md)
+- [AiToolSchema](interfaces/AiToolSchema.md)
+- [AiToolDefinition](interfaces/AiToolDefinition.md)
+- [AiTool](interfaces/AiTool.md)
+- [AiToolsRegistered](interfaces/AiToolsRegistered.md)
 
 ## Type Aliases
 
@@ -130,10 +140,7 @@
 - [ProtocolEventName](type-aliases/ProtocolEventName.md)
 - [ResolvedClaimValue](type-aliases/ResolvedClaimValue.md)
 - [P2pkhTransferAssetId](type-aliases/P2pkhTransferAssetId.md)
-- [ConnectPaymentType](type-aliases/ConnectPaymentType.md)
-- [ConnectPaymentRecipientOwnership](type-aliases/ConnectPaymentRecipientOwnership.md)
 - [ConnectPaymentStatus](type-aliases/ConnectPaymentStatus.md)
-- [ConnectPaymentRecipient](type-aliases/ConnectPaymentRecipient.md)
 - [PaymentStatusResult](type-aliases/PaymentStatusResult.md)
 - [ProtocolMethod](type-aliases/ProtocolMethod.md)
 - [MethodParams](type-aliases/MethodParams.md)
@@ -142,6 +149,7 @@
 - [ProtocolEventMessage](type-aliases/ProtocolEventMessage.md)
 - [ProtocolResultMessage](type-aliases/ProtocolResultMessage.md)
 - [ReceiverPeerPolicy](type-aliases/ReceiverPeerPolicy.md)
+- [AiToolMessage](type-aliases/AiToolMessage.md)
 
 ## Variables
 
@@ -160,3 +168,4 @@
 - [MSFILE\_LOCAL\_SOURCE\_ID](variables/MSFILE_LOCAL_SOURCE_ID.md)
 - [PROTOCOL\_VERSION](variables/PROTOCOL_VERSION.md)
 - [PROTOCOL\_METHODS](variables/PROTOCOL_METHODS.md)
+- [AI\_TOOLS\_MAX\_JSON\_CHARS](variables/AI_TOOLS_MAX_JSON_CHARS.md)

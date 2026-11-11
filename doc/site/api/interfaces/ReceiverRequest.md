@@ -17,6 +17,7 @@
 | [`walletGeneration`](#walletgeneration) | `string` | Yes | — |
 | [`runGeneration`](#rungeneration) | `string` | Yes | — |
 | [`bindingId?`](#bindingid) | `string` | No | — |
+| [`authorizationId?`](#authorizationid) | `string` | No | — |
 | [`signal`](#signal) | `AbortSignal` | Yes | — |
 
 ## Type Parameters
@@ -78,6 +79,12 @@
 ### bindingId?
 
 > `readonly` `optional` **bindingId?**: `string`
+
+***
+
+### authorizationId?
+
+> `readonly` `optional` **authorizationId?**: `string`
 
 ***
 

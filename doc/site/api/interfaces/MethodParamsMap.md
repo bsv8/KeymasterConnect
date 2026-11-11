@@ -9,12 +9,10 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`payment.channel.register`](#paymentchannelregister) | [`PaymentChannelRegisterParams`](PaymentChannelRegisterParams.md) | Yes | — |
 | [`identity.get`](#identityget) | [`IdentityGetParams`](IdentityGetParams.md) | Yes | — |
 | [`intent.sign`](#intentsign) | [`IntentSignParams`](IntentSignParams.md) | Yes | — |
 | [`cipher.encrypt`](#cipherencrypt) | [`CipherEncryptParams`](CipherEncryptParams.md) | Yes | — |
 | [`cipher.decrypt`](#cipherdecrypt) | [`CipherDecryptParams`](CipherDecryptParams.md) | Yes | — |
-| [`p2pkh.transfer`](#p2pkhtransfer) | [`P2pkhTransferParams`](P2pkhTransferParams.md) | Yes | — |
 | [`payment.pay`](#paymentpay) | [`PaymentPayParams`](PaymentPayParams.md) | Yes | — |
 | [`payment.status`](#paymentstatus) | [`PaymentStatusParams`](PaymentStatusParams.md) | Yes | — |
 | [`connect.login`](#connectlogin) | [`ConnectLoginParams`](ConnectLoginParams.md) | Yes | — |
@@ -27,19 +25,15 @@
 | [`storage.directory.create`](#storagedirectorycreate) | [`StorageDirectoryParams`](StorageDirectoryParams.md) | Yes | — |
 | [`storage.directory.delete`](#storagedirectorydelete) | [`StorageDirectoryParams`](StorageDirectoryParams.md) | Yes | — |
 | [`storage.put`](#storageput) | [`StoragePutParams`](StoragePutParams.md) | Yes | — |
+| [`storage.encrypted.put`](#storageencryptedput) | [`StoragePutParams`](StoragePutParams.md) | Yes | — |
 | [`storage.get`](#storageget) | [`StorageGetParams`](StorageGetParams.md) | Yes | — |
+| [`storage.encrypted.get`](#storageencryptedget) | [`StorageGetParams`](StorageGetParams.md) | Yes | — |
 | [`storage.delete`](#storagedelete) | [`StorageDeleteParams`](StorageDeleteParams.md) | Yes | — |
 | [`msfile.stat`](#msfilestat) | [`MsFileStatParams`](MsFileStatParams.md) | Yes | — |
 | [`msfile.seed.read`](#msfileseedread) | [`MsFileSeedReadParams`](MsFileSeedReadParams.md) | Yes | — |
 | [`msfile.block.read`](#msfileblockread) | [`MsFileBlockReadParams`](MsFileBlockReadParams.md) | Yes | — |
 
 ## Properties
-
-### payment.channel.register
-
-> **payment.channel.register**: [`PaymentChannelRegisterParams`](PaymentChannelRegisterParams.md)
-
-***
 
 ### identity.get
 
@@ -62,12 +56,6 @@
 ### cipher.decrypt
 
 > **cipher.decrypt**: [`CipherDecryptParams`](CipherDecryptParams.md)
-
-***
-
-### p2pkh.transfer
-
-> **p2pkh.transfer**: [`P2pkhTransferParams`](P2pkhTransferParams.md)
 
 ***
 
@@ -143,9 +131,21 @@
 
 ***
 
+### storage.encrypted.put
+
+> **storage.encrypted.put**: [`StoragePutParams`](StoragePutParams.md)
+
+***
+
 ### storage.get
 
 > **storage.get**: [`StorageGetParams`](StorageGetParams.md)
+
+***
+
+### storage.encrypted.get
+
+> **storage.encrypted.get**: [`StorageGetParams`](StorageGetParams.md)
 
 ***
 

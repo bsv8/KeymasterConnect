@@ -6,12 +6,21 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
+| [`authorizationId`](#authorizationid) | `string` | Yes | 不透明恢复凭据，绑定原钱包、应用和精确来源；不得写入日志或 URL。 |
 | [`networkIdentity`](#networkidentity) | [`NetworkIdentity`](NetworkIdentity.md) | Yes | — |
 | [`resolvedClaims`](#resolvedclaims) | `Record`\<`string`, [`ResolvedClaimValue`](../type-aliases/ResolvedClaimValue.md)\> | Yes | 本次 login 时一次解析的 claims 真值快照。 |
 | [`resolvedAt`](#resolvedat) | `number` | Yes | 本次解析时间（unix milliseconds）。 |
 | [`appIdentity?`](#appidentity) | [`VerifiedAppIdentity`](VerifiedAppIdentity.md) | No | — |
 
 ## Properties
+
+### authorizationId
+
+> **authorizationId**: `string`
+
+不透明恢复凭据，绑定原钱包、应用和精确来源；不得写入日志或 URL。
+
+***
 
 ### networkIdentity
 

@@ -550,76 +550,24 @@ export interface CipherDecryptResult {
     content: BinaryField;
 }
 
-export interface PaymentChannelRegisterParams {
-    channelName: string;
-    paymentType: "p2pkh" | "p2pk";
-}
-
-export interface PaymentChannelRegisterResult {
-    channelId: string;
-}
-
-/**
- * Connect 公开的 P2PKH 资产标识。
- *
- * 设计缘由（施工单 2026-09-18 001 多资产硬切换）：
- *   - 公开命名固定 `bsv-mainnet` / `bsv-testnet`，不暴露 p2pkh 内部
- *     的 `bsv` / `bsvtest`；
- *   - 资产由连接绑定的钱包网络决定，调用方不能选择或覆盖该网络。
- */
 export type P2pkhTransferAssetId = "bsv-mainnet" | "bsv-testnet";
 
-export interface P2pkhTransferParams {
-    /** 先注册取得的完整渠道编号；不允许宿主代填或省略。 */
-    channelId: string;
-    /** 主网或 testnet P2PKH 地址（base58check，version 0x00 / 0x6f）。 */
-    recipientAddress: string;
-    /** 正整数 satoshis。 */
-    amountSatoshis: number;
-    /** 可选费率（sat/kB），>= 1；缺省由钱包当前网络的有效费率策略决定。 */
-    feeRateSatoshisPerKb?: number;
-}
-
-export interface P2pkhTransferResult {
-    /** 本次实际转账的资产，与连接绑定的钱包网络一致。 */
-    assetId: P2pkhTransferAssetId;
-    /** 已广播交易的 canonical txid。 */
-    txid: string;
-    /** 已签名交易 raw hex。 */
-    rawTxHex: string;
-    /** 实际花费的 fee satoshis。 */
-    feeSatoshis: number;
-}
-
 /* ============== payment.pay / payment.status ============== */
-/** Connect v1 支付方案；业务种类（businessKind）是独立维度。 */
-export type ConnectPaymentType = "p2pkh" | "p2pk";
-
-export type ConnectPaymentRecipientOwnership = "app-publisher" | "third-party" | "unknown";
+/** Connect v1 输出支付：业务输出数组，顺序即链上顺序。 */
+export interface PaymentOutput {
+    /** 聪，允许 0（数据输出）。必须为非负安全整数。 */
+    amount: number;
+    /** locking script hex；偶数长度 hex，允许空字符串（零长度锁定脚本）。 */
+    script: string;
+}
 
 export type ConnectPaymentStatus = "pending" | "not_signed" | "signed_not_dispatched" | "unknown" | "failed" | "accepted" | "already_known";
 
-/** 收款材料：类型必须与 paymentType 一致。 */
-export type ConnectPaymentRecipient = {
-    type: "p2pkh";
-    address: string;
-} | {
-    type: "p2pk";
-    publicKeyHex: string;
-};
-
 export interface PaymentPayParams {
-    channelId: string;
     /** 稳定幂等身份，1–128 字符。 */
     clientRequestId: string;
-    paymentType: ConnectPaymentType;
-    /** App 声明的业务用途；展示时不是可信商业结论。 */
-    businessKind: string;
-    /** 业务金额（聪，不含矿工费）。 */
-    amountSatoshis: number;
-    /** 可选希望费率（sat/kB）；缺省由钱包当前网络的有效费率策略决定。 */
-    feeRateSatoshisPerKb?: number;
-    recipient: ConnectPaymentRecipient;
+    /** 业务输出；非空，顺序即链上顺序，找零由钱包追加。 */
+    outputs: PaymentOutput[];
 }
 
 export interface PaymentReleaseSummary {
@@ -635,8 +583,6 @@ export interface PaymentPayResult {
     clientRequestId: string;
     status: ConnectPaymentStatus;
     assetId: P2pkhTransferAssetId;
-    paymentType: ConnectPaymentType;
-    recipientOwnership: ConnectPaymentRecipientOwnership;
     /** 只有 accepted/already_known 才有 canonical txid。 */
     txid?: string;
     feeSatoshis?: number;
@@ -722,10 +668,8 @@ export const PROTOCOL_METHODS = [
     "intent.sign",
     "cipher.encrypt",
     "cipher.decrypt",
-    "p2pkh.transfer",
     "payment.pay",
     "payment.status",
-    "payment.channel.register",
     "connect.login",
     "connect.resume",
     "connect.logout",
@@ -755,12 +699,10 @@ export type ProtocolMethod = (typeof PROTOCOL_METHODS)[number];
  * 业务代码里直接 `MethodParams<"identity.get">` 等价于 `IdentityGetParams`。
  */
 export interface MethodParamsMap {
-    "payment.channel.register": PaymentChannelRegisterParams;
     "identity.get": IdentityGetParams;
     "intent.sign": IntentSignParams;
     "cipher.encrypt": CipherEncryptParams;
     "cipher.decrypt": CipherDecryptParams;
-    "p2pkh.transfer": P2pkhTransferParams;
     "payment.pay": PaymentPayParams;
     "payment.status": PaymentStatusParams;
     "connect.login": ConnectLoginParams;
@@ -782,12 +724,10 @@ export interface MethodParamsMap {
     "msfile.block.read": MsFileBlockReadParams;
 }
 export interface MethodResultMap {
-    "payment.channel.register": PaymentChannelRegisterResult;
     "identity.get": IdentityGetResult;
     "intent.sign": IntentSignResult;
     "cipher.encrypt": CipherEncryptResult;
     "cipher.decrypt": CipherDecryptResult;
-    "p2pkh.transfer": P2pkhTransferResult;
     "payment.pay": PaymentPayResult;
     "payment.status": PaymentStatusResult;
     "connect.login": ConnectLoginResult;

@@ -17,9 +17,7 @@ pageClass: capability-map-page
 | `identity.get` | 返回有有效期、接收方和签名的身份断言 |
 | `intent.sign` | 在明确用户意图下签署 App 提供的字节 |
 | `cipher.encrypt` / `cipher.decrypt` | 在钱包网络、Owner 和精确 origin 下加解密二进制内容 |
-| `p2pkh.transfer` | 当前 Connect v1 范围拒绝；付款使用 `payment.pay` |
-| `payment.pay` / `payment.status` | 在连接钱包网络付款／查询付款状态 |
-| `payment.channel.register` | 注册 App 支付用途，取得付款必填的 channelId；不授予免确认额度 |
+| `payment.pay` / `payment.status` | 在连接钱包网络按 outputs 数组付款／查询付款状态 |
 | `channel.publish` | 向精确频道发布已签名 JSON |
 | `channel.subscription_set` | 替换当前会话贡献的精确订阅集合 |
 | `storage.list` | 列出 App 隔离命名空间中的目录和对象 |
@@ -30,10 +28,8 @@ pageClass: capability-map-page
 
 ## 公共调用选项
 
-付款前调用 `registerPaymentChannel({ channelName: "checkout", paymentType: "p2pkh" })`，
-把返回的 `channelId` 传给每次 `paymentPay`。相同 App、名称、用途及网络重复注册得到同一编号。
+付款直接提交 outputs 数组（金额加 locking script hex），顺序即链上顺序，找零由钱包追加；网络取当前连接，费率取钱包配置。旧 `payment.channel.register` 与 `p2pkh.transfer` 已移除，不再可调用。
 付款授权和签名策略由钱包负责，SDK 不提供设备连接或软硬钱包切换。
-缺 channelId 会明确拒绝，不由 Keymaster 补默认值。恢复连接不删除历史付款责任。
 
 ```ts
 const result = await keymaster.identityGet(params, {

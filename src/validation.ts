@@ -8,7 +8,7 @@ import {
   type StorageGetParams, type StorageDeleteParams, type MsFileStatParams, type MsFileSeedReadParams,
   type MsFileBlockReadParams, type BinaryField, type ProtocolErrorCode, type IdentityGetParams,
   type IntentSignParams, type CipherEncryptParams, type CipherDecryptParams, type P2pkhTransferAssetId,
-  type PaymentChannelRegisterParams, type PaymentPayParams, type PaymentStatusParams,
+  type PaymentPayParams, type PaymentStatusParams,
   type ConnectLoginParams, type ConnectResumeParams, type ConnectLogoutParams, type ConnectLaunchParams,
   type ProtocolMethod, type ProtocolRequestMessage,
 } from "./protocol.js";
@@ -82,52 +82,31 @@ export function assertOriginMatches(aud: string, eventOrigin: string): void {
 }
 
 /* ============== Connect v1 payment.pay / payment.status ============== */
-function validatePaymentPayParams(raw: unknown, network: "main" | "test"): PaymentPayParams {
+function validatePaymentPayParams(raw: unknown): PaymentPayParams {
     const obj = expectObject(raw, "payment.pay params");
-    const allowed = ["channelId", "clientRequestId", "paymentType", "businessKind", "amountSatoshis", "feeRateSatoshisPerKb", "recipient"];
+    const allowed = ["clientRequestId", "outputs"];
     for (const key of Object.keys(obj))
         if (!allowed.includes(key))
             throw new ProtocolValidationError("invalid_request", "payment.pay contains an unsupported field");
     const clientRequestId = expectNonEmptyString(obj.clientRequestId, "clientRequestId");
     if (clientRequestId.length > 128 || !/^[A-Za-z0-9._:-]+$/u.test(clientRequestId))
         throw new ProtocolValidationError("invalid_request", "clientRequestId is invalid");
-    const paymentType = obj.paymentType;
-    if (paymentType !== "p2pkh" && paymentType !== "p2pk")
-        throw new ProtocolValidationError("invalid_request", "paymentType is unsupported");
-    const businessKind = expectNonEmptyString(obj.businessKind, "businessKind");
-    if (businessKind.length > 64 || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(businessKind))
-        throw new ProtocolValidationError("invalid_request", "businessKind is invalid");
-    const recipient = expectObject(obj.recipient, "recipient");
-    if (paymentType === "p2pkh") {
-        if (recipient.type !== "p2pkh")
-            throw new ProtocolValidationError("invalid_request", "recipient.type must match paymentType");
-        for (const key of Object.keys(recipient))
-            if (key !== "type" && key !== "address")
-                throw new ProtocolValidationError("invalid_request", "recipient contains an unsupported field");
-        const address = expectString(recipient.address, "recipient.address");
-        const assetId = (network === "test" ? "bsv-testnet" : "bsv-mainnet");
-        assertP2pkhAddressForAsset(address, assetId ?? "bsv-mainnet");
-    }
-    else {
-        if (recipient.type !== "p2pk")
-            throw new ProtocolValidationError("invalid_request", "recipient.type must match paymentType");
-        for (const key of Object.keys(recipient))
-            if (key !== "type" && key !== "publicKeyHex")
-                throw new ProtocolValidationError("invalid_request", "recipient contains an unsupported field");
-        assertCompressedPubkeyHex(expectString(recipient.publicKeyHex, "recipient.publicKeyHex"));
-    }
-    const amountSatoshis = expectPositiveInteger(obj.amountSatoshis, "amountSatoshis");
-    let feeRateSatoshisPerKb: number | undefined;
-    if (obj.feeRateSatoshisPerKb !== undefined)
-        feeRateSatoshisPerKb = expectPositiveInteger(obj.feeRateSatoshisPerKb, "feeRateSatoshisPerKb");
-    const channelId = expectPaymentChannelId(obj.channelId);
-    return {
-        channelId, clientRequestId, paymentType, businessKind, amountSatoshis,
-        ...(feeRateSatoshisPerKb === undefined ? {} : { feeRateSatoshisPerKb }),
-        recipient: paymentType === "p2pkh"
-            ? { type: "p2pkh", address: expectString(recipient.address, "recipient.address") }
-            : { type: "p2pk", publicKeyHex: expectString(recipient.publicKeyHex, "recipient.publicKeyHex").toLowerCase() },
-    };
+    if (!Array.isArray(obj.outputs) || obj.outputs.length === 0)
+        throw new ProtocolValidationError("invalid_request", "outputs must be a non-empty array");
+    const outputs = obj.outputs.map((entry, index) => {
+        const item = expectObject(entry, `outputs[${index}]`);
+        for (const key of Object.keys(item))
+            if (key !== "amount" && key !== "script")
+                throw new ProtocolValidationError("invalid_request", `outputs[${index}] contains an unsupported field`);
+        const amount = item.amount;
+        if (typeof amount !== "number" || !Number.isSafeInteger(amount) || amount < 0)
+            throw new ProtocolValidationError("invalid_request", `outputs[${index}].amount must be a non-negative safe integer`);
+        const script = expectString(item.script, `outputs[${index}].script`);
+        if (script.length % 2 !== 0 || !/^[0-9a-fA-F]*$/u.test(script))
+            throw new ProtocolValidationError("invalid_request", `outputs[${index}].script must be even-length hex`);
+        return { amount, script: script.toLowerCase() };
+    });
+    return { clientRequestId, outputs };
 }
 
 function validatePaymentStatusParams(raw: unknown): PaymentStatusParams {
@@ -146,16 +125,6 @@ function expectPaymentChannelId(raw: unknown): string {
     if (id.length > 96 || !/^[a-z][a-z0-9.-]+$/.test(id))
         throw new ProtocolValidationError("invalid_request", "Invalid payment channelId");
     return id;
-}
-
-function validatePaymentChannelRegisterParams(raw: unknown): PaymentChannelRegisterParams {
-    const obj = expectObject(raw, "payment.channel.register params");
-    const channelName = expectNonEmptyString(obj.channelName, "channelName");
-    if (!/^[a-z][a-z0-9.-]{0,31}$/.test(channelName))
-        throw new ProtocolValidationError("invalid_request", "Invalid channelName");
-    if (obj.paymentType !== "p2pkh" && obj.paymentType !== "p2pk")
-        throw new ProtocolValidationError("invalid_request", "Unsupported paymentType");
-    return { channelName, paymentType: obj.paymentType };
 }
 
 /* ============== 施工单 2026-06-28 001：connect.* 校验 ============== */
@@ -697,15 +666,15 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
     const id = expectNonEmptyString(value.id, "Request id");
     if (["networkIdentity", "walletPublicKeyHex"].some(field => field in value)) throw new ProtocolValidationError("invalid_request", "Wallet selectors have been removed");
     if (typeof value.method !== "string") throw new ProtocolValidationError("invalid_request", "Unknown method");
-    if (value.method === "feepool.prepare" || value.method === "feepool.commit" || value.method === "p2pkh.transfer") throw new ProtocolValidationError("unsupported_scope", "Method is outside Connect v1 scope");
+    if (value.method === "feepool.prepare" || value.method === "feepool.commit" || value.method === "p2pkh.transfer" || value.method === "payment.channel.register") throw new ProtocolValidationError("unsupported_scope", "Method is outside Connect v1 scope");
     if (!PROTOCOL_METHODS.includes(value.method as ProtocolMethod)) throw new ProtocolValidationError("invalid_request", "Unknown method");
     const params = expectObject(value.params, "Params");
     for (const field of ["walletPublicKeyHex", "networkIdentity", "bsvNetwork", "assetId"]) {
         if (field in params) throw new ProtocolValidationError("invalid_request", `Removed wallet selector: ${field}`);
     }
     const method = value.method as ProtocolMethod;
-    if (method === "payment.channel.register" && params.paymentType === "feepool.connect") throw new ProtocolValidationError("unsupported_scope", "Connect v1 does not create fee-pool channels");
     const identity = validateNetworkIdentity(receiverIdentity);
+    void identity;
     let normalized: P.MethodParams<ProtocolMethod>;
     switch (method) {
         case "connect.login": normalized = validateConnectLoginParams(params); break;
@@ -716,9 +685,8 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
         case "intent.sign": normalized = validateIntentSignParams(params); break;
         case "cipher.encrypt": normalized = validateCipherEncryptParams(params); break;
         case "cipher.decrypt": normalized = validateCipherDecryptParams(params); break;
-        case "payment.pay": normalized = validatePaymentPayParams(params, identity.bsvNetwork); break;
+        case "payment.pay": normalized = validatePaymentPayParams(params); break;
         case "payment.status": normalized = validatePaymentStatusParams(params); break;
-        case "payment.channel.register": normalized = validatePaymentChannelRegisterParams(params); break;
         case "channel.publish": normalized = validateChannelPublishParams(params); break;
         case "channel.subscription_set": normalized = validateChannelSubscriptionSetParams(params); break;
         case "storage.list": normalized = validateStorageListParams(params); break;

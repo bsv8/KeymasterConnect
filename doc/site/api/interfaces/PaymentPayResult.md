@@ -10,8 +10,6 @@
 | [`clientRequestId`](#clientrequestid) | `string` | Yes | — |
 | [`status`](#status) | [`ConnectPaymentStatus`](../type-aliases/ConnectPaymentStatus.md) | Yes | — |
 | [`assetId`](#assetid) | [`P2pkhTransferAssetId`](../type-aliases/P2pkhTransferAssetId.md) | Yes | — |
-| [`paymentType`](#paymenttype) | [`ConnectPaymentType`](../type-aliases/ConnectPaymentType.md) | Yes | — |
-| [`recipientOwnership`](#recipientownership) | [`ConnectPaymentRecipientOwnership`](../type-aliases/ConnectPaymentRecipientOwnership.md) | Yes | — |
 | [`txid?`](#txid) | `string` | No | 只有 accepted/already_known 才有 canonical txid。 |
 | [`feeSatoshis?`](#feesatoshis) | `number` | No | — |
 | [`changeSatoshis?`](#changesatoshis) | `number` | No | — |
@@ -42,18 +40,6 @@
 ### assetId
 
 > **assetId**: [`P2pkhTransferAssetId`](../type-aliases/P2pkhTransferAssetId.md)
-
-***
-
-### paymentType
-
-> **paymentType**: [`ConnectPaymentType`](../type-aliases/ConnectPaymentType.md)
-
-***
-
-### recipientOwnership
-
-> **recipientOwnership**: [`ConnectPaymentRecipientOwnership`](../type-aliases/ConnectPaymentRecipientOwnership.md)
 
 ***
 

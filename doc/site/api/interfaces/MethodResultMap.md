@@ -6,12 +6,10 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| [`payment.channel.register`](#paymentchannelregister) | [`PaymentChannelRegisterResult`](PaymentChannelRegisterResult.md) | Yes | — |
 | [`identity.get`](#identityget) | [`IdentityGetResult`](IdentityGetResult.md) | Yes | — |
 | [`intent.sign`](#intentsign) | [`IntentSignResult`](IntentSignResult.md) | Yes | — |
 | [`cipher.encrypt`](#cipherencrypt) | [`CipherEncryptResult`](CipherEncryptResult.md) | Yes | — |
 | [`cipher.decrypt`](#cipherdecrypt) | [`CipherDecryptResult`](CipherDecryptResult.md) | Yes | — |
-| [`p2pkh.transfer`](#p2pkhtransfer) | [`P2pkhTransferResult`](P2pkhTransferResult.md) | Yes | — |
 | [`payment.pay`](#paymentpay) | [`PaymentPayResult`](PaymentPayResult.md) | Yes | — |
 | [`payment.status`](#paymentstatus) | [`PaymentPayResult`](PaymentPayResult.md) | Yes | — |
 | [`connect.login`](#connectlogin) | [`ConnectLoginResult`](ConnectLoginResult.md) | Yes | — |
@@ -24,19 +22,15 @@
 | [`storage.directory.create`](#storagedirectorycreate) | [`StorageDirectoryResult`](StorageDirectoryResult.md) | Yes | — |
 | [`storage.directory.delete`](#storagedirectorydelete) | [`StorageDirectoryResult`](StorageDirectoryResult.md) | Yes | — |
 | [`storage.put`](#storageput) | [`StoragePutResult`](StoragePutResult.md) | Yes | — |
+| [`storage.encrypted.put`](#storageencryptedput) | [`StoragePutResult`](StoragePutResult.md) | Yes | — |
 | [`storage.get`](#storageget) | [`StorageGetResult`](StorageGetResult.md) | Yes | — |
+| [`storage.encrypted.get`](#storageencryptedget) | [`StorageGetResult`](StorageGetResult.md) | Yes | — |
 | [`storage.delete`](#storagedelete) | [`StorageDeleteResult`](StorageDeleteResult.md) | Yes | — |
 | [`msfile.stat`](#msfilestat) | [`MsFileStatResult`](MsFileStatResult.md) | Yes | — |
 | [`msfile.seed.read`](#msfileseedread) | [`MsFileReadResult`](MsFileReadResult.md) | Yes | — |
 | [`msfile.block.read`](#msfileblockread) | [`MsFileReadResult`](MsFileReadResult.md) | Yes | — |
 
 ## Properties
-
-### payment.channel.register
-
-> **payment.channel.register**: [`PaymentChannelRegisterResult`](PaymentChannelRegisterResult.md)
-
-***
 
 ### identity.get
 
@@ -59,12 +53,6 @@
 ### cipher.decrypt
 
 > **cipher.decrypt**: [`CipherDecryptResult`](CipherDecryptResult.md)
-
-***
-
-### p2pkh.transfer
-
-> **p2pkh.transfer**: [`P2pkhTransferResult`](P2pkhTransferResult.md)
 
 ***
 
@@ -140,9 +128,21 @@
 
 ***
 
+### storage.encrypted.put
+
+> **storage.encrypted.put**: [`StoragePutResult`](StoragePutResult.md)
+
+***
+
 ### storage.get
 
 > **storage.get**: [`StorageGetResult`](StorageGetResult.md)
+
+***
+
+### storage.encrypted.get
+
+> **storage.encrypted.get**: [`StorageGetResult`](StorageGetResult.md)
 
 ***
 
