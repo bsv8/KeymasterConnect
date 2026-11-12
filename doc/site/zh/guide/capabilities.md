@@ -23,12 +23,13 @@ pageClass: capability-map-page
 | `storage.list` | 列出 App 隔离命名空间中的目录和对象 |
 | `storage.directory.create/delete` | 创建或删除目录标记 |
 | `storage.put/get/delete` | 写入、读取或删除对象 |
+| `storage.encrypted.put/get` | 钱包加密后上传／解密后返回明文（`0.1.5` 候选，`0.1.4` Receiver 拒绝） |
 | `msfile.stat` | 查询内容所在 Supplier 和报价 |
 | `msfile.seed.read` / `msfile.block.read` | 读取并校验 Seed 或 Block |
 
 ## 公共调用选项
 
-付款直接提交 outputs 数组（金额加 locking script hex），顺序即链上顺序，找零由钱包追加；网络取当前连接，费率取钱包配置。旧 `payment.channel.register` 与 `p2pkh.transfer` 已移除，不再可调用。
+付款直接提交 outputs 数组（金额加 locking script hex），顺序即链上顺序，找零由钱包追加；网络取当前连接，费率取钱包配置。旧 `payment.channel.register` 与 `p2pkh.transfer` 已移除，不再可调用。付款输出展示经独立子入口 `keymaster-connect/script`（`interpretLockingScript`）解释为 P2PKH／P2PK／标准多签／OP_RETURN／未知，仅供展示，不决定是否允许支付。
 付款授权和签名策略由钱包负责，SDK 不提供设备连接或软硬钱包切换。
 
 ```ts
@@ -50,5 +51,5 @@ const result = await keymaster.identityGet(params, {
 ## 身份要求
 
 Storage 和 MSFile 需要已验证 App 身份及相应 requirement（所需能力声明）。本地缓存重置后，可在
-`resume({ appIdentity })` 中重新验证已有 proof，见[会话](/concepts/sessions)。App 不能指定
+`resume({ appIdentity })` 中重新验证已有 proof，见[会话](/zh/concepts/sessions)。App 不能指定
 Supplier、桶、物理路径、凭据、私钥或付款额度。

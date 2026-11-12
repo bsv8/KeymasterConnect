@@ -98,6 +98,18 @@
         "link": "/api/functions/isValidMsFileSourceId.md"
       },
       {
+        "text": "interpretLockingScript",
+        "link": "/api/functions/interpretLockingScript.md"
+      },
+      {
+        "text": "interpretPaymentOutputs",
+        "link": "/api/functions/interpretPaymentOutputs.md"
+      },
+      {
+        "text": "totalBusinessSats",
+        "link": "/api/functions/totalBusinessSats.md"
+      },
+      {
         "text": "isEstablishing",
         "link": "/api/functions/isEstablishing.md"
       },
@@ -416,6 +428,30 @@
         "link": "/api/interfaces/ProtocolRequestMessage.md"
       },
       {
+        "text": "PaymentScriptP2pkh",
+        "link": "/api/interfaces/PaymentScriptP2pkh.md"
+      },
+      {
+        "text": "PaymentScriptP2pk",
+        "link": "/api/interfaces/PaymentScriptP2pk.md"
+      },
+      {
+        "text": "PaymentScriptMultisig",
+        "link": "/api/interfaces/PaymentScriptMultisig.md"
+      },
+      {
+        "text": "PaymentScriptOpReturn",
+        "link": "/api/interfaces/PaymentScriptOpReturn.md"
+      },
+      {
+        "text": "PaymentScriptUnknown",
+        "link": "/api/interfaces/PaymentScriptUnknown.md"
+      },
+      {
+        "text": "InterpretedPaymentOutput",
+        "link": "/api/interfaces/InterpretedPaymentOutput.md"
+      },
+      {
         "text": "ConnectPeer",
         "link": "/api/interfaces/ConnectPeer.md"
       },
@@ -568,6 +604,14 @@
       {
         "text": "ProtocolResultMessage",
         "link": "/api/type-aliases/ProtocolResultMessage.md"
+      },
+      {
+        "text": "PaymentScriptKind",
+        "link": "/api/type-aliases/PaymentScriptKind.md"
+      },
+      {
+        "text": "PaymentScriptInterpretation",
+        "link": "/api/type-aliases/PaymentScriptInterpretation.md"
       },
       {
         "text": "ReceiverPeerPolicy",

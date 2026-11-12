@@ -582,3 +582,21 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 独立语言下拉代替默认 globe 下拉；原三点 extra 下拉整个不要，主题切换常驻顶栏。
+   移动端（<768px）走汉堡菜单内默认语言项与外观项。 */
+.VPNavBarTranslations {
+  display: none !important;
+}
+
+.VPNavBarExtra {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  /* 默认主题 scoped 的 display:none 优先级更高，必须用 !important 覆盖。 */
+  .VPNavBarAppearance {
+    display: flex !important;
+    align-items: center;
+  }
+}

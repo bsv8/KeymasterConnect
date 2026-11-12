@@ -37,4 +37,4 @@ keymaster.close();        // 仅关闭传输，不代替注销
 Storage / MSFile 接入可在 `login` 或 `resume({ appIdentity })` 提交发行人签名 proof。
 钱包锁定时仍可能要求解锁或确认。App 不保存内部连接绑定；新窗口建立后显式恢复，并重新判断返回身份。
 
-这是硬切换：删除初始化 `networkIdentity`、业务 `walletPublicKeyHex`、用于选择网络的 `assetId`，以及 resume/logout 的公钥参数。旧协议不兼容。详情见[发布说明](/release-notes)。
+这是硬切换：删除初始化 `networkIdentity`、业务 `walletPublicKeyHex`、用于选择网络的 `assetId`，以及 resume/logout 的公钥参数。旧协议不兼容。详情见[发布说明](/zh/release-notes)。
