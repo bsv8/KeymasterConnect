@@ -408,7 +408,7 @@ export const PROTOCOL_VERSION = 1;
  */
 export type ProtocolErrorCode =
 /** Transport authority was revoked or belongs to another wallet/Worker generation. */
-"connection_expired" | "invalid_request" | "invalid_origin" | "user_rejected" | "active_key_unavailable" | "decrypt_failed"
+"connection_expired" | "authorization_expired" | "invalid_request" | "invalid_origin" | "user_rejected" | "active_key_unavailable" | "decrypt_failed"
 /**
  * 请求资产与连接绑定的钱包网络不一致；accept 阶段拒绝，不进入业务执行。
  */
@@ -761,6 +761,8 @@ export interface ProtocolReconnectMessage {
   id: string;
   authorizationId: string;
   bindingId?: string;
+  /** 刷新恢复时提交的当前入口 proof；后台心跳可省略，宿主按原授权核对。 */
+  appIdentity?: AppIdentityProofV1;
 }
 export interface ProtocolRequestMessage<M extends ProtocolMethod = ProtocolMethod> {
   v: typeof PROTOCOL_VERSION; type: "request"; id: string; method: M; params: MethodParams<M>; bindingId?: string;

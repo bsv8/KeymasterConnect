@@ -5,6 +5,7 @@ import {
   type ProtocolError, type ProtocolResultMessage, type ProtocolEventPayload, type ProtocolReadyMessage, type ProtocolClosingMessage,
 } from "./protocol.js";
 import { parseRequestMessage, parseCancelMessage, ProtocolValidationError, assertOriginMatches } from "./validation.js";
+import { verifyAppIdentityProof } from "./appIdentity.js";
 export * from "./validation.js";
 export * from "./appIdentity.js";
 export * from "./tools.js";
@@ -50,14 +51,21 @@ interface Pending { context: ReceiverRequest; abort: AbortController; }
 export function isEstablishing(method: string): boolean { return ["connect.login", "connect.resume", "connect.launch"].includes(method); }
 
 /** 生产钱包与闭环测试共用同一接收端，不内置测试业务或默认自动授权。 */
-/** 外部恢复控制只携带不透明授权引用，不能夹带业务参数或钱包选择器。 */
+/** 外部恢复控制只携带不透明授权引用和可选当前入口 proof，不能夹带业务参数或钱包选择器。 */
 export function parseReconnectMessage(data: unknown): import("./protocol.js").ProtocolReconnectMessage | null {
   if (!data || typeof data !== "object") return null;
   const value = data as Record<string, unknown>;
   if (value.v !== PROTOCOL_VERSION || value.type !== "reconnect" || typeof value.id !== "string" || !value.id || value.id.length > 128
     || typeof value.authorizationId !== "string" || !value.authorizationId || value.authorizationId.length > 128
     || (value.bindingId !== undefined && typeof value.bindingId !== "string")
-    || Object.keys(value).some(key => !["v", "type", "id", "authorizationId", "bindingId"].includes(key))) return null;
+    || Object.keys(value).some(key => !["v", "type", "id", "authorizationId", "bindingId", "appIdentity"].includes(key))) return null;
+  if (value.appIdentity !== undefined) {
+    try {
+      verifyAppIdentityProof(value.appIdentity);
+    } catch {
+      return null;
+    }
+  }
   return value as unknown as import("./protocol.js").ProtocolReconnectMessage;
 }
 
@@ -94,7 +102,8 @@ export class KeymasterConnectReceiver {
     if (!this.isAllowedPeer(event)) return null;
     const reconnect = parseReconnectMessage(event.data);
     // 持久授权由钱包宿主验证；Receiver 只把已登记来源的恢复控制转换为标准 resume。
-    const raw = reconnect ? { v: PROTOCOL_VERSION, type: "request", id: reconnect.id, method: "connect.resume", params: {} } : event.data as Record<string, unknown> | null;
+    // 刷新恢复携带的当前入口 proof 经校验后转交宿主，由宿主核对原授权绑定身份。
+    const raw = reconnect ? { v: PROTOCOL_VERSION, type: "request", id: reconnect.id, method: "connect.resume", params: reconnect.appIdentity ? { appIdentity: reconnect.appIdentity } : {} } : event.data as Record<string, unknown> | null;
     if (!raw || typeof raw !== "object" || raw.type !== "request") return null;
     // 重复 ID 不能借非法参数生成第二条错误响应并截断原请求的等待。
     if (typeof raw.id === "string" && this.pending.get(event.source)?.has(raw.id)) return null;

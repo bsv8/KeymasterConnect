@@ -21,6 +21,8 @@ console.log(connected.networkIdentity);
 
 公开能力包括 Connect、Identity、Cipher、Payment（outputs 数组）、Channel、Storage 和 MSFile。首次连接不选择公钥或网络，后续业务使用接收端签发的连接绑定。钱包重置或 Worker 世代改变后旧绑定失效，App 必须显式重新连接。ready 只代表完整钱包已具备传输条件；logout 撤销连接授权，close 只关闭传输，不关闭用户的钱包窗口。取消是尽力通知，不表示已签名/广播的业务可以回滚。产品未上线，wire 固定为 v1，不维护已删除字段兼容分支。
 
+`connect()` 只建立传输，不恢复授权；刷新恢复请使用 `resume()`，它先装载本地恢复记录再复用 `continueConnection()`。`login`／`launch`／`resume` 成功保存最近一条恢复记录（`sessionStorage`，键 `keymaster-connect:recovery:v1`，仅含版本、精确 origin、模式、授权引用和网络身份），`logout` 成功、明确授权失效或用户主动清除才删除；`close`、页面卸载、超时、窗口关闭均保留。`readConnectionRecovery()` 返回公开摘要（不含凭据），`clearConnectionRecovery()` 仅删本地材料；`KeymasterConnectOptions.recoveryStorage` 可替换存储，不降级到 `localStorage`。存储写入失败不影响已成功的登录，调用方可读 `client.recoverySaveError` 提示“已登录，但刷新恢复信息保存失败”。`connection_expired` 仅表达运行连接失效，保留记录；只有钱包返回 `authorization_expired` 或匹配的 `revoked` 才清除。
+
 `payment.pay` 为 outputs 模型：`{ clientRequestId, outputs: [{ amount, script }] }`，顺序即链上顺序，找零由钱包追加；旧 `channelId/paymentType/businessKind/amountSatoshis/recipient/feeRate` 字段与 `payment.channel.register`、`p2pkh.transfer` 已移除。脚本解释经独立子入口 `keymaster-connect/script`（`interpretLockingScript`）供钱包与 CLI Web 展示，不决定是否允许支付。
 
 ## AI 工具（0.1.4）
