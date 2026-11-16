@@ -2,10 +2,10 @@
 
 Keymaster Connect v1 的独立生产协议栈，包含 Client、公开契约和 Receiver，不依赖钱包源码或 WebLoom。
 
-无 scope 的 `keymaster-connect`，当前公共版本为 **0.1.4**，源码 **0.1.5** 为可选加密存储候选，尚未公共发布；wire 始终保持 v1。已发布版本安装：
+无 scope 的 `keymaster-connect`，当前版本为 **0.1.6**，包含可选加密存储、连接恢复与完整应用发布证明；wire 始终保持 v1。已发布版本安装：
 
 ```sh
-npm install --save-exact keymaster-connect@0.1.4
+npm install --save-exact keymaster-connect@0.1.6
 ```
 
 支持钱包内嵌 iframe、钱包打开 App（appView）和 App 主动打开完整钱包（popup，默认）。App 主动连接打开完整钱包根页面 `/`，不打开独立协议页；`close()`、错误和超时不关闭钱包窗口。完整说明见 [App 主动打开钱包](doc/site/concepts/popup-mode.md)。
@@ -25,7 +25,7 @@ console.log(connected.networkIdentity);
 
 `payment.pay` 为 outputs 模型：`{ clientRequestId, outputs: [{ amount, script }] }`，顺序即链上顺序，找零由钱包追加；旧 `channelId/paymentType/businessKind/amountSatoshis/recipient/feeRate` 字段与 `payment.channel.register`、`p2pkh.transfer` 已移除。脚本解释经独立子入口 `keymaster-connect/script`（`interpretLockingScript`）供钱包与 CLI Web 展示，不决定是否允许支付。
 
-## AI 工具（0.1.4）
+## AI 工具
 
 `client.registerTools([...])` 让已连接 App 向钱包 AI 提供带 JSON Schema 的工具描述与本地执行回调；传 `[]` 注销。注册无需额外审批，仍不授予付款/签名许可。断线或绑定变化后必须重新注册，旧调用不重放。服务端提供 `KeymasterAiToolReceiver`；wire 继续为 v1。
 
@@ -59,12 +59,12 @@ S3 文件从桶根按 `<网络>/<钱包小写>/<originKey>/files/<文件路径>`
 
 以上为钱包配套实现的能力约定；SDK 类型和传输本身不能保证某个钱包部署已启用 S3。
 
-### 可选加密存储（0.1.5 候选）
+### 可选加密存储
 
 `client.storagePutEncrypted(params)` 对应 `storage.encrypted.put`，接收与普通 put 相同的明文参数，由钱包 Vault 加密后上传；`client.storageGetEncrypted(params)` 对应 `storage.encrypted.get`，由钱包解密后返回明文。密钥由钱包秘密材料经 HKDF 派生，绑定钱包、网络及已验证 App 公钥，遵循钱包产品的公钥隔离规则；仅同一钱包能解密。文件路径仍可见，正文与原始 MIME 保存在密文中。
 
 加密读取的 offset/length 和 totalSize 表示明文范围，revision/ifMatch 表示远端密文版本；普通 get 返回原始对象，list 的 size 是远端字节数。密文篡改、跨路径复制、错误密钥或把普通对象交给加密读取均报 `storage_provider_error`，不退回普通读取。两种对象共用原有目录、条件创建和删除接口；加密接口不改变普通 put/get。
 
-这些新方法需钱包与 App 消费配套的正式 SDK 版本；0.1.4 Receiver 会拒绝新方法，不能通过发送普通 put 偷渡加密标记。发布前只在隔离候选包中验证，不把候选测试当作公共发布成功。
+钱包与 App 必须消费配套的正式 SDK 版本；旧 Receiver 不支持新方法或完整 publicationProof，不能通过删除证明或发送普通 put 绕过校验。
 
 建连使用 `publicationProof:{publication,signatureHex}`，SDK 从唯一 keymaster-app 记录读取完整规范 JSON 和外置签名，仅做结构、编码及131072字节记录长度检查，Both 完整清单一并传递。身份验签归钱包，SDK 不提供发布或文件验证 API。resume 使用既有快照。
