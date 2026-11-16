@@ -4,7 +4,7 @@
 
 > **canonicalizeJson**(`value`): `string`
 
-RFC 8785-compatible canonical JSON for the proof payload.
+RFC 8785-compatible canonical JSON for generic vectors.
 
 ## Parameters
 

@@ -8,7 +8,7 @@
 | :--- | :--- | :---: | :--- |
 | [`text`](#text) | `string` | Yes | 人类可读确认文案。 |
 | [`claims?`](#claims) | `string`[] | No | 请求索要的 claim 名列表（与 `identity.get` 同语义）。 |
-| [`appIdentity?`](#appidentity) | [`AppIdentityProofV1`](AppIdentityProofV1.md) | No | 发布者签名的 caller identity proof；缺省时建立无 storage 的普通 session。 |
+| [`publicationProof?`](#publicationproof) | [`PublicationProof`](PublicationProof.md) | No | App 入口的 URL 来源证明（SDK 从当前入口 HTML 头读取并提交）。 |
 
 ## Properties
 
@@ -29,8 +29,10 @@
 
 ***
 
-### appIdentity?
+### publicationProof?
 
-> `optional` **appIdentity?**: [`AppIdentityProofV1`](AppIdentityProofV1.md)
+> `optional` **publicationProof?**: [`PublicationProof`](PublicationProof.md)
 
-发布者签名的 caller identity proof；缺省时建立无 storage 的普通 session。
+App 入口的 URL 来源证明（SDK 从当前入口 HTML 头读取并提交）。
+钱包验签并核对证明 origin 与可信 event.origin 是否一致；应用不能自报来源。
+本地 Files 部署不依赖该字段（以 daemon 可信部署登记为准）。

@@ -7,7 +7,7 @@
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
 | [`launchToken`](#launchtoken) | `string` | Yes | 由 launcher 写入 client app 启动 URL 的 launchToken。 |
-| [`appIdentity`](#appidentity) | [`AppIdentityProofV1`](AppIdentityProofV1.md) | Yes | 与 launcher 预建 session 绑定的完整签名 proof。 |
+| [`publicationProof?`](#publicationproof) | [`PublicationProof`](PublicationProof.md) | No | App 入口的 URL 来源证明（可选；钱包发起的目录启动一般不需要客户端提交， 钱包从所选入口自行读取；应用提交时钱包核对一致性，不能自报来源）。 |
 
 ## Properties
 
@@ -19,8 +19,9 @@
 
 ***
 
-### appIdentity
+### publicationProof?
 
-> **appIdentity**: [`AppIdentityProofV1`](AppIdentityProofV1.md)
+> `optional` **publicationProof?**: [`PublicationProof`](PublicationProof.md)
 
-与 launcher 预建 session 绑定的完整签名 proof。
+App 入口的 URL 来源证明（可选；钱包发起的目录启动一般不需要客户端提交，
+钱包从所选入口自行读取；应用提交时钱包核对一致性，不能自报来源）。

@@ -1,4 +1,5 @@
 import { AiToolClient } from "./toolClient.js";
+import { readOwnPublicationProof } from "./internal/publicationProof.js";
 import type { AiTool, AiToolsRegistered } from "./tools.js";
 import {
   clearConnectionRecovery,
@@ -10,7 +11,6 @@ import {
 import {
   PROTOCOL_VERSION, PROTOCOL_METHODS,
   validateNetworkIdentity, sameNetworkIdentity, type NetworkIdentity,
-  type AppIdentityProofV1,
   type ChannelPublishParams,
   type ChannelPublishResult,
   type ChannelSubscriptionSetParams,
@@ -188,7 +188,7 @@ const DEFAULT_CLOSE_POLL_MS = 500;
  * });
  *
  * await keymaster.connect();
- * const session = await keymaster.launch({ launchToken, appIdentity });
+ * const session = await keymaster.launch({ launchToken });
  * ```
  *
  * @groupDescription Connect
@@ -252,9 +252,8 @@ export class KeymasterConnectClient {
   private recoveryId: string | null = null;
   private readonly recoveryStorage: ConnectionRecoveryStorage | null;
   private recoverySaveErrorValue: string | null = null;
-  /** 显式恢复期间暂停后台心跳，保证本次尝试使用同一份 proof；结束（成功/失败/取消/超时）后恢复。 */
+  /** 显式恢复期间暂停后台心跳；结束（成功/失败/取消/超时）后恢复。 */
   private explicitRecoveryActive = false;
-  private explicitRecoveryProof: AppIdentityProofV1 | undefined = undefined;
   /** 内存授权是否已验证：login/launch/恢复成功置 true；仅从存储装载的待验证凭据为 false。 */
   private authorizationVerified = false;
   /** 当前传输窗口是否已可信就绪（收到过匹配来源与窗口的 ready）；新开窗口后重置，存在≠就绪。 */
@@ -321,10 +320,17 @@ export class KeymasterConnectClient {
       if (field in params) throw new TypeError(`Removed wallet selector: ${field}`);
     }
     if (method === "connect.resume" && this.authorizationId) {
-      const resumeProof = (params as ConnectResumeParams).appIdentity as AppIdentityProofV1 | undefined;
-      return this.continueConnection(options, resumeProof) as Promise<MethodResult<M>>;
+      void params;
+      return this.continueConnection(options) as Promise<MethodResult<M>>;
     }
     const establishing = ["connect.login", "connect.resume", "connect.launch"].includes(method);
+    // 建连证明在传输层统一附带：无论调用方走 login()/launch() 便捷方法还是
+    // 直接 request("connect.login"/"connect.launch")，当前入口的 URL 来源证明
+    // 都会被附上（若有）；钱包核对签名与可信来源。resume 沿用快照不携带。
+    let effectiveParams = params;
+    if ((method === "connect.login" || method === "connect.launch") && !("publicationProof" in params)) {
+      effectiveParams = withOwnPublicationProof(params);
+    }
     if (!establishing && this.stateValue === "paused") throw new KeymasterTransportError("wallet_paused", "Wallet connection is paused; old business requests are never replayed");
     if (establishing && this.pending.size) throw new TypeError("Cannot establish a connection while requests are pending");
     // 显式恢复同样占用唯一的建立连接位：login/launch/普通 resume 不得与之并发。
@@ -377,7 +383,7 @@ export class KeymasterConnectClient {
           ...(!establishing ? { bindingId: this.bindingId } : {}),
           id: requestId,
           method,
-          params
+          params: effectiveParams
         }, this.targetOrigin);
       } catch (cause) {
         this.deletePending(requestId);
@@ -392,7 +398,7 @@ export class KeymasterConnectClient {
    * @group Connect
    */
   login(params: ConnectLoginParams, options?: KeymasterRequestOptions): Promise<ConnectLoginResult> {
-    return this.request("connect.login", params, options);
+    return this.request("connect.login", withOwnPublicationProof(params), options);
   }
 
   /**
@@ -402,7 +408,7 @@ export class KeymasterConnectClient {
    * 刷新恢复时只把保存的凭据和预期身份载入待恢复上下文，不直接置为已登录；
    * 钱包验证成功、结果身份一致并取得新 binding 后才开放业务调用。
    * 无可用凭据时直接拒绝并提示重新登录，不回退到无凭据的重建默认授权。
-   * 恢复请求携带调用方当前入口的 `appIdentity`（如有），不静默丢弃。
+   *
    *
    * @group Connect
    */
@@ -426,7 +432,8 @@ export class KeymasterConnectClient {
       return Promise.reject(new KeymasterTransportError("client_closed", "No saved Keymaster recovery record for this origin and mode; login again"));
     }
     // 存储为空但内存有未验证凭据时，用内存凭据尝试一次；失败照常清理。
-    return this.continueConnection(options ?? {}, params.appIdentity);
+    void params;
+    return this.continueConnection(options ?? {});
   }
 
   /**
@@ -446,7 +453,7 @@ export class KeymasterConnectClient {
    * @group Connect
    */
   launch(params: ConnectLaunchParams, options?: KeymasterRequestOptions): Promise<ConnectLaunchResult> {
-    return this.request("connect.launch", params, options);
+    return this.request("connect.launch", withOwnPublicationProof(params), options);
   }
 
   /**
@@ -681,21 +688,20 @@ export class KeymasterConnectClient {
     if (!this.authorizationId) this.sessionWindow = null;
     this.recoveryId = null;
     this.explicitRecoveryActive = false;
-    this.explicitRecoveryProof = undefined;
     this.recoveryReadyContinue = null;
     this.finishRecovery(undefined, error);
     this.setState(this.authorizationId ? "paused" : "disconnected");
   }
 
   /** 主动恢复可由 popup 重新打开钱包；后台恢复从不打开窗口或重放业务。 */
-  private continueConnection(options: KeymasterRequestOptions, appIdentity?: AppIdentityProofV1): Promise<ConnectResumeResult> {
+  private continueConnection(options: KeymasterRequestOptions): Promise<ConnectResumeResult> {
     if (options.signal?.aborted) return Promise.reject(abortReason(options.signal));
     // 互斥：已在进行的显式恢复未结束前，不接受第二次恢复（经由 resume 或 request 直调）。
     if (this.explicitRecoveryActive) return Promise.reject(new TypeError("Connection recovery is already in progress"));
     if (this.pending.size) return Promise.reject(new TypeError("Cannot resume while business requests are pending"));
     this.installListener();
     // 新 popup 尚未 ready：钱包监听未安装，立即首发必丢。窗口存在≠就绪，
-    // 以 sessionWindowReady 独立记录；未就绪一律等可信窗口 ready 后再发固定 proof。
+    // 以 sessionWindowReady 独立记录；未就绪一律等可信窗口 ready 后再发恢复。
     let awaitReady = false;
     if (this.mode === "popup") {
       if (!this.sessionWindow || isWindowClosed(this.sessionWindow)) {
@@ -713,15 +719,12 @@ export class KeymasterConnectClient {
       if (!launcher || isWindowClosed(launcher)) return Promise.reject(new KeymasterTransportError("appview_session_lost", "Wallet launcher unavailable; relaunch from the wallet"));
       this.sessionWindow = launcher;
     }
-    // 显式恢复开始：暂停后台心跳并固定本次 proof；结束（成功/失败/取消/超时）后恢复。
-    // 清理依据凭据是否已验证，而非本次是否读存储：未验证凭据失败一律清内存
-    // （防无 proof 心跳旁路），存储保留供用户重试；已验证授权失败则保留。
+    // 显式恢复开始：暂停后台心跳；结束（成功/失败/取消/超时）后恢复。
+    // 清理依据凭据是否已验证：未验证凭据失败一律清内存，存储保留供用户重试；已验证授权失败则保留。
     const wasVerified = this.authorizationVerified;
     this.explicitRecoveryActive = true;
-    this.explicitRecoveryProof = appIdentity;
     const endExplicitAttempt = (failed: boolean) => {
       this.explicitRecoveryActive = false;
-      this.explicitRecoveryProof = undefined;
       this.recoveryReadyContinue = null;
       if (failed && !wasVerified && this.authorizationId) {
         this.authorizationId = null;
@@ -746,9 +749,9 @@ export class KeymasterConnectClient {
       options.signal?.addEventListener("abort", aborted, { once: true });
       if (awaitReady) {
         // 首发推迟到可信窗口 ready；超时/取消/结束由统一 finish 收口。
-        this.recoveryReadyContinue = () => this.sendRecovery(this.explicitRecoveryProof);
+        this.recoveryReadyContinue = () => this.sendRecovery();
       } else {
-        this.sendRecovery(this.explicitRecoveryProof);
+        this.sendRecovery();
       }
     });
   }
@@ -856,7 +859,7 @@ export class KeymasterConnectClient {
       if (!result.ok) {
         // connection_expired 只表达运行连接、binding 或世代失效，保留恢复记录；
         // 只有钱包确认凭据已不存在/已撤销/不再有效时返回 authorization_expired，才清除。
-        // 超时、窗口关闭、proof 校验失败及身份不匹配均保留记录，不自动重试。
+        // 超时、窗口关闭及身份不匹配均保留记录，不自动重试。
         const code = result.error?.code;
         const message = result.error?.message ?? "Failed to restore wallet connection";
         if (code === "authorization_expired") {
@@ -971,7 +974,6 @@ export class KeymasterConnectClient {
     this.sessionWindow = null;
     this.sessionWindowReady = false;
     this.explicitRecoveryActive = false;
-    this.explicitRecoveryProof = undefined;
     this.recoveryReadyContinue = null;
     this.setState("disconnected");
   }
@@ -1017,14 +1019,14 @@ export class KeymasterConnectClient {
     }
   }
 
-  private sendRecovery(appIdentity?: AppIdentityProofV1): void {
+  private sendRecovery(): void {
     if (!this.authorizationId || !this.sessionWindow || isWindowClosed(this.sessionWindow)) return;
     // 显式建立连接期间不发恢复心跳：旧授权的失效结果不能打断正在等待审批的
     // login/resume/launch；建立完成后心跳以新授权恢复。
     if (this.stateValue === "opening") return;
     if ([...this.pending.values()].some(request => ["connect.login", "connect.resume", "connect.launch"].includes(request.method))) return;
     this.recoveryId ??= this.environment.randomUUID();
-    try { this.sessionWindow.postMessage({ v: PROTOCOL_VERSION, type: "reconnect", id: this.recoveryId, authorizationId: this.authorizationId, ...(this.bindingId ? { bindingId: this.bindingId } : {}), ...(appIdentity ? { appIdentity } : {}) }, this.targetOrigin); }
+    try { this.sessionWindow.postMessage({ v: PROTOCOL_VERSION, type: "reconnect", id: this.recoveryId, authorizationId: this.authorizationId, ...(this.bindingId ? { bindingId: this.bindingId } : {}) }, this.targetOrigin); }
     catch (error) { this.pause(error); }
   }
 
@@ -1134,4 +1136,11 @@ function abortReason(signal: AbortSignal): unknown {
 
 function errorMessage(value: unknown, fallback: string): string {
   return value instanceof Error && value.message ? value.message : fallback;
+}
+
+/** 主动建连时附带当前入口的 URL 来源证明（若有）；钱包仍核对实际来源。 */
+function withOwnPublicationProof<P extends object>(params: P): P {
+  if ("publicationProof" in params && params.publicationProof !== undefined) return params;
+  const proof = readOwnPublicationProof();
+  return proof ? { ...params, publicationProof: proof } : params;
 }

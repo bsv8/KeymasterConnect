@@ -3,18 +3,44 @@
   "version": "0.1.5",
   "description": "Keymaster Connect v1 的独立客户端与接收端协议栈",
   "type": "module",
-  "repository": { "type": "git", "url": "git+https://github.com/bsv8/KeymasterConnect.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bsv8/KeymasterConnect.git"
+  },
   "sideEffects": false,
   "license": "SEE LICENSE IN LICENSE",
-  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
-  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" },
-    "./protocol": { "types": "./dist/protocol.d.ts", "import": "./dist/protocol.js", "default": "./dist/protocol.js" },
-    "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js", "default": "./dist/server.js" },
-    "./script": { "types": "./dist/script.d.ts", "import": "./dist/script.js", "default": "./dist/script.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./protocol": {
+      "types": "./dist/protocol.d.ts",
+      "import": "./dist/protocol.js",
+      "default": "./dist/protocol.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    },
+    "./script": {
+      "types": "./dist/script.d.ts",
+      "import": "./dist/script.js",
+      "default": "./dist/script.js"
+    }
   },
   "scripts": {
     "prepublishOnly": "npm run typecheck && npm run build",
@@ -28,8 +54,16 @@
     "doc:build": "npm --prefix doc run build",
     "doc:preview": "npm --prefix doc run preview"
   },
-  "devDependencies": { "tsup": "8.5.1", "typescript": "5.9.3" },
-  "dependencies": { "@noble/curves": "^2.2.0", "@noble/hashes": "^2.2.0" },
-  "engines": { "node": ">=20.19" },
+  "devDependencies": {
+    "tsup": "8.5.1",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^2.2.0"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
   "packageManager": "pnpm@11.5.1"
 }

@@ -1,6 +1,6 @@
-[keymaster-connect](../index.md) / AppIdentityValidationError
+[keymaster-connect](../index.md) / OriginValidationError
 
-# Class: AppIdentityValidationError
+# Class: OriginValidationError
 
 ## Extends
 
@@ -10,7 +10,7 @@
 
 ### Constructor
 
-> **new AppIdentityValidationError**(`message`): `AppIdentityValidationError`
+> **new OriginValidationError**(`message`): `OriginValidationError`
 
 #### Parameters
 
@@ -20,7 +20,7 @@
 
 #### Returns
 
-`AppIdentityValidationError`
+`OriginValidationError`
 
 #### Overrides
 

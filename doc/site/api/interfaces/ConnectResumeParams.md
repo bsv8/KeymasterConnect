@@ -2,16 +2,10 @@
 
 # Interface: ConnectResumeParams
 
-## Properties overview
+## Extends
 
-| Property | Type | Required | Description |
-| :--- | :--- | :---: | :--- |
-| [`appIdentity?`](#appidentity) | [`AppIdentityProofV1`](AppIdentityProofV1.md) | No | 本地数据重置后重新验证已有发行人签名 proof。 |
+- `Record`\<`string`, `never`\>
 
-## Properties
+## Indexable
 
-### appIdentity?
-
-> `optional` **appIdentity?**: [`AppIdentityProofV1`](AppIdentityProofV1.md)
-
-本地数据重置后重新验证已有发行人签名 proof。
+> \[`key`: `string`\]: `never`

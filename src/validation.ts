@@ -1,5 +1,5 @@
 import * as P from "./protocol.js";
-import { AppIdentityValidationError, verifyAppIdentityProof } from "./appIdentity.js";
+
 import {
   validateNetworkIdentity, PROTOCOL_VERSION, PROTOCOL_METHODS,
   STORAGE_MAX_PAYLOAD_BYTES, STORAGE_DEFAULT_LIST_LIMIT, STORAGE_MAX_LIST_LIMIT, isValidMsFileSourceId,
@@ -12,6 +12,7 @@ import {
   type ConnectLoginParams, type ConnectResumeParams, type ConnectLogoutParams, type ConnectLaunchParams,
   type ProtocolMethod, type ProtocolRequestMessage,
 } from "./protocol.js";
+import { validatePublicationProof } from "./internal/publicationProof.js";
 /** 校验失败：抛出的对象。service 会捕获并组装 ProtocolError。 */
 export class ProtocolValidationError extends Error {
     readonly code: ProtocolErrorCode;
@@ -139,10 +140,10 @@ function expectPaymentChannelId(raw: unknown): string {
  */
 function validateConnectLoginParams(raw: unknown): ConnectLoginParams {
     const obj = expectObject(raw, "connect.login params");
-    // app identity/metadata 由 Keymaster 根据 caller origin 查本地 catalog；
-    // 任何自报字段都硬拒绝，避免绕过本地信任根。
+    // 可信来源属于 Receiver 上下文；任何自报身份字段都硬拒绝。
+    // publicationProof 是 App 入口来源证明对象（非来源自报），可选携带，钱包核对签名与实际来源。
     for (const key of Object.keys(obj))
-        if (key !== "text" && key !== "claims" && key !== "appIdentity")
+        if (key !== "text" && key !== "claims" && key !== "publicationProof")
             throw new ProtocolValidationError("invalid_request", "connect.login contains an unsupported field");
     const text = expectString(obj.text, "text");
     let claims: string[] | undefined;
@@ -154,17 +155,15 @@ function validateConnectLoginParams(raw: unknown): ConnectLoginParams {
             throw new ProtocolValidationError("invalid_request", "claims entries must be strings");
         claims = [...obj.claims] as string[];
     }
-    let appIdentity: ConnectLoginParams["appIdentity"];
-    if (obj.appIdentity !== undefined) {
+    let publicationProof: ConnectLoginParams["publicationProof"];
+    if (obj.publicationProof !== undefined) {
         try {
-            verifyAppIdentityProof(obj.appIdentity);
-            appIdentity = obj.appIdentity as ConnectLoginParams["appIdentity"];
-        }
-        catch (error) {
-            throw new ProtocolValidationError("invalid_request", error instanceof AppIdentityValidationError ? error.message : "appIdentity is invalid");
+            publicationProof = validatePublicationProof(obj.publicationProof);
+        } catch {
+            throw new ProtocolValidationError("invalid_request", "publicationProof is invalid");
         }
     }
-    return { text, claims, ...(appIdentity ? { appIdentity } : {}) };
+    return publicationProof === undefined ? { text, claims } : { text, claims, publicationProof };
 }
 
 /**
@@ -176,19 +175,9 @@ function validateConnectLoginParams(raw: unknown): ConnectLoginParams {
 function validateConnectResumeParams(raw: unknown): ConnectResumeParams {
     const obj = expectObject(raw, "connect.resume params");
     for (const field of Object.keys(obj))
-        if (field !== "appIdentity")
-            throw new ProtocolValidationError("invalid_request", "connect.resume contains an unsupported field");
-    let appIdentity: ConnectResumeParams["appIdentity"];
-    if (obj.appIdentity !== undefined) {
-        try {
-            verifyAppIdentityProof(obj.appIdentity);
-            appIdentity = obj.appIdentity as ConnectResumeParams["appIdentity"];
-        }
-        catch (error) {
-            throw new ProtocolValidationError("invalid_request", error instanceof Error ? error.message : "appIdentity is invalid");
-        }
-    }
-    return { ...(appIdentity ? { appIdentity } : {}) };
+        throw new ProtocolValidationError("invalid_request", "connect.resume contains an unsupported field");
+    void obj;
+    return {};
 }
 
 /**
@@ -202,21 +191,17 @@ function validateConnectLogoutParams(raw: unknown): ConnectLogoutParams {
 /* ============== connect.launch（施工单 2026-06-29 001 硬切换） ============== */
 function validateConnectLaunchParams(raw: unknown): ConnectLaunchParams {
     const obj = expectObject(raw, "connect.launch params");
-    if (Object.keys(obj).some((key) => key !== "launchToken" && key !== "appIdentity")) {
+    if (Object.keys(obj).some((key) => key !== "launchToken" && key !== "publicationProof")) {
         throw new ProtocolValidationError("invalid_request", "connect.launch contains an unsupported field");
     }
     const launchToken = expectNonEmptyString(obj.launchToken, "launchToken");
-    if (obj.appIdentity === undefined)
-        throw new ProtocolValidationError("invalid_request", "appIdentity is required");
-    let appIdentity: ConnectLaunchParams["appIdentity"];
+    if (obj.publicationProof === undefined) return { launchToken };
     try {
-        verifyAppIdentityProof(obj.appIdentity);
-        appIdentity = obj.appIdentity as ConnectLaunchParams["appIdentity"];
+        const publicationProof = validatePublicationProof(obj.publicationProof);
+        return { launchToken, publicationProof };
+    } catch {
+        throw new ProtocolValidationError("invalid_request", "publicationProof is invalid");
     }
-    catch (error) {
-        throw new ProtocolValidationError("invalid_request", error instanceof AppIdentityValidationError ? error.message : "appIdentity is invalid");
-    }
-    return { launchToken, appIdentity };
 }
 
 /* ============== channel.* validation（施工单 2026-09-02） ============== */
@@ -297,6 +282,10 @@ function requireExactKeys(obj: Record<string, unknown>, keys: readonly string[],
 
 /* ============== storage.* validation ============== */
 const STORAGE_FORBIDDEN_FIELDS = [
+    "appPublicKeyHex",
+    "appPublicKey",
+    "publicationProof",
+    "appProof",
     "publisherPublicKeyHex",
     "publisherPublicKey",
     "appId",
@@ -407,6 +396,10 @@ function validateStorageDeleteParams(raw: unknown): StorageDeleteParams {
 // invalid_request。maxPriceSatoshis / blockIndex / fileId 等被明确禁止，
 // 避免 App 绕过 Keymaster 价格策略或重建文件级访问模型。
 const MSFILE_FORBIDDEN_FIELDS = [
+    "appPublicKeyHex",
+    "appPublicKey",
+    "publicationProof",
+    "appProof",
     "maxPriceSatoshis",
     "contentKind",
     "kind",

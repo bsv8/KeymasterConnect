@@ -1,5 +1,6 @@
 /** Connect v1 公开契约。独立于钱包内部执行 DTO、能力框架和持久化。 */
 export type { AiToolSchema, AiToolDefinition, AiToolsRegistered, AiToolMessage } from "./tools.js";
+export type { PublicationProof } from "./internal/publicationProof.js";
 
 /** 身份网络在创建/导入时确定；公钥相同也不能跨网复用业务身份。 */
 export type BsvNetwork = "main" | "test";
@@ -27,30 +28,6 @@ export function validateNetworkIdentity(value: unknown): NetworkIdentity {
 export function sameNetworkIdentity(left: NetworkIdentity, right: NetworkIdentity): boolean {
     return left.bsvNetwork === right.bsvNetwork && left.publicKeyHex.toLowerCase() === right.publicKeyHex.toLowerCase();
 }
-
-export type AppRequirement = "private-key" | "storage";
-
-export interface AppIdentityProofV1 {
-    version: 1;
-    publisherPublicKey: string;
-    app: {
-        id: string;
-        name: string;
-        description: string;
-    };
-    requirements: AppRequirement[];
-    signature: string;
-}
-
-export interface VerifiedAppIdentity {
-    version: 1;
-    publisherPublicKeyHex: string;
-    appId: string;
-    appName: string;
-    identityDigestHex: string;
-}
-
-export type AppIdentitySnapshot = VerifiedAppIdentity;
 
 //
 // 说明：Channel 是唯一的消息/发布抽象。这里不暴露 Supplier、SSP Wire、私钥、
@@ -415,7 +392,7 @@ export type ProtocolErrorCode =
  | "asset_not_enabled"
 /** Connect v1 明确排除的方法族（新费用池签名等）。 */
  | "unsupported_scope"
-/** 通用支付需要已验证 App 身份（publisher 是归属唯一基准）。 */
+/** 通用支付需要已建立的可信来源会话（origin 是归属唯一基准）。 */
  | "identity_required"
 /** 当前硬件后端缺少 Connect 支付所需的受信展示/结构检查。 */
  | "hardware_connect_payment_unsupported" | "payment_not_found"
@@ -607,24 +584,25 @@ export interface ConnectLoginParams {
      * 缺省 = `[]`，不返回任何 claim；通常 caller 想获取 profile.* 时必须显式列出。
      */
     claims?: string[];
-    /** 发布者签名的 caller identity proof；缺省时建立无 storage 的普通 session。 */
-    appIdentity?: AppIdentityProofV1;
+    /**
+     * App 入口的 URL 来源证明（SDK 从当前入口 HTML 头读取并提交）。
+     * 钱包验签并核对证明 origin 与可信 event.origin 是否一致；应用不能自报来源。
+     * 本地 Files 部署不依赖该字段（以 daemon 可信部署登记为准）。
+     */
+    publicationProof?: import("./internal/publicationProof.js").PublicationProof;
 }
 
 export interface ConnectLoginResult {
-    /** 不透明恢复凭据，绑定原钱包、应用和精确来源；不得写入日志或 URL。 */
+    /** 不透明恢复凭据，绑定原钱包和精确来源；不得写入日志或 URL。 */
     authorizationId: string;
     networkIdentity: NetworkIdentity;
     /** 本次 login 时一次解析的 claims 真值快照。 */
     resolvedClaims: Record<string, ResolvedClaimValue>;
     /** 本次解析时间（unix milliseconds）。 */
     resolvedAt: number;
-    appIdentity?: AppIdentitySnapshot;
 }
 
-export interface ConnectResumeParams {
-    /** 本地数据重置后重新验证已有发行人签名 proof。 */
-    appIdentity?: AppIdentityProofV1;
+export interface ConnectResumeParams extends Record<string, never> {
 }
 
 export interface ConnectResumeResult {
@@ -636,7 +614,6 @@ export interface ConnectResumeResult {
      * 给 caller 用来做"是否要重新登录"的客户端超时策略。
      */
     resolvedAt: number;
-    appIdentity?: AppIdentitySnapshot;
 }
 
 export interface ConnectLogoutParams extends Record<string, never> {
@@ -650,8 +627,11 @@ export interface ConnectLogoutResult {
 export interface ConnectLaunchParams {
     /** 由 launcher 写入 client app 启动 URL 的 launchToken。一次性消费。 */
     launchToken: string;
-    /** 与 launcher 预建 session 绑定的完整签名 proof。 */
-    appIdentity: AppIdentityProofV1;
+    /**
+     * App 入口的 URL 来源证明（可选；钱包发起的目录启动一般不需要客户端提交，
+     * 钱包从所选入口自行读取；应用提交时钱包核对一致性，不能自报来源）。
+     */
+    publicationProof?: import("./internal/publicationProof.js").PublicationProof;
 }
 
 export interface ConnectLaunchResult {
@@ -659,7 +639,6 @@ export interface ConnectLaunchResult {
     networkIdentity: NetworkIdentity;
     resolvedClaims: Record<string, ResolvedClaimValue>;
     resolvedAt: number;
-    appIdentity?: AppIdentitySnapshot;
 }
 
 /** 协议方法名常量集合。 */
@@ -686,7 +665,7 @@ export const PROTOCOL_METHODS = [
     "storage.encrypted.get",
     "storage.delete",
     // MSFile 对外方法族，见 docs/MSFile.md。与 storage.* 同为
-    // session-bound 且强制要求 verified App Identity；Seed/Block 显式区分，
+    // session-bound 且强制要求可信来源会话；Seed/Block 显式区分，
     // Read 不接受 maxPriceSatoshis（金额只能来自 Keymaster 设置或用户确认）。
     "msfile.stat",
     "msfile.seed.read",
@@ -761,8 +740,6 @@ export interface ProtocolReconnectMessage {
   id: string;
   authorizationId: string;
   bindingId?: string;
-  /** 刷新恢复时提交的当前入口 proof；后台心跳可省略，宿主按原授权核对。 */
-  appIdentity?: AppIdentityProofV1;
 }
 export interface ProtocolRequestMessage<M extends ProtocolMethod = ProtocolMethod> {
   v: typeof PROTOCOL_VERSION; type: "request"; id: string; method: M; params: MethodParams<M>; bindingId?: string;
