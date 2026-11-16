@@ -240,50 +240,6 @@
         "link": "/api/interfaces/ChannelMessageReceivedEventData.md"
       },
       {
-        "text": "StorageListParams",
-        "link": "/api/interfaces/StorageListParams.md"
-      },
-      {
-        "text": "StorageListEntry",
-        "link": "/api/interfaces/StorageListEntry.md"
-      },
-      {
-        "text": "StorageListResult",
-        "link": "/api/interfaces/StorageListResult.md"
-      },
-      {
-        "text": "StorageDirectoryParams",
-        "link": "/api/interfaces/StorageDirectoryParams.md"
-      },
-      {
-        "text": "StorageDirectoryResult",
-        "link": "/api/interfaces/StorageDirectoryResult.md"
-      },
-      {
-        "text": "StoragePutParams",
-        "link": "/api/interfaces/StoragePutParams.md"
-      },
-      {
-        "text": "StoragePutResult",
-        "link": "/api/interfaces/StoragePutResult.md"
-      },
-      {
-        "text": "StorageGetParams",
-        "link": "/api/interfaces/StorageGetParams.md"
-      },
-      {
-        "text": "StorageGetResult",
-        "link": "/api/interfaces/StorageGetResult.md"
-      },
-      {
-        "text": "StorageDeleteParams",
-        "link": "/api/interfaces/StorageDeleteParams.md"
-      },
-      {
-        "text": "StorageDeleteResult",
-        "link": "/api/interfaces/StorageDeleteResult.md"
-      },
-      {
         "text": "MsFileStatParams",
         "link": "/api/interfaces/MsFileStatParams.md"
       },
@@ -655,18 +611,6 @@
     "text": "Variables",
     "collapsed": true,
     "items": [
-      {
-        "text": "STORAGE_MAX_PAYLOAD_BYTES",
-        "link": "/api/variables/STORAGE_MAX_PAYLOAD_BYTES.md"
-      },
-      {
-        "text": "STORAGE_DEFAULT_LIST_LIMIT",
-        "link": "/api/variables/STORAGE_DEFAULT_LIST_LIMIT.md"
-      },
-      {
-        "text": "STORAGE_MAX_LIST_LIMIT",
-        "link": "/api/variables/STORAGE_MAX_LIST_LIMIT.md"
-      },
       {
         "text": "MSFILE_PROTOCOL_ID",
         "link": "/api/variables/MSFILE_PROTOCOL_ID.md"

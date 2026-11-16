@@ -34,7 +34,7 @@ await keymaster.logout(); // 現在 origin の接続を取消する
 keymaster.close();        // 転送のみ終了する。ログアウトではない
 ```
 
-Storage / MSFile の利用時は `login` または `resume({ appIdentity })` で発行者署名 proof を提出します。
+MSFile の利用時は `login` または `resume({ appIdentity })` で発行者署名 proof を提出します。
 ウォレットがロック中でもアンロックや確認を求められる場合があります。アプリは内部の接続紐付けを保存しません。新規ウィンドウでは再開または再ログインし、返却身份を再確認してください。
 
 これはハード切替です。初期化 `networkIdentity`、業務 `walletPublicKeyHex`、ネットワーク選択 `assetId`、resume/logout の公開鍵引数は削除され、旧プロトコルとの互換性はありません。詳細は[リリースノート](/ja/release-notes)。

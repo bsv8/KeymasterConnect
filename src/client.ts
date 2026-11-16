@@ -45,16 +45,6 @@ import {
   type ProtocolEventMessage,
   type ProtocolMethod,
   type ProtocolResultMessage,
-  type StorageDeleteParams,
-  type StorageDeleteResult,
-  type StorageDirectoryParams,
-  type StorageDirectoryResult,
-  type StorageGetParams,
-  type StorageGetResult,
-  type StorageListParams,
-  type StorageListResult,
-  type StoragePutParams,
-  type StoragePutResult,
 } from "./protocol.js";
 
 /** iframe：钱包内嵌；appView：钱包弹出 App；popup：App 主动打开钱包。 */
@@ -207,8 +197,6 @@ const DEFAULT_CLOSE_POLL_MS = 500;
  * Publish JSON content and manage exact-channel subscriptions. Incoming
  * messages arrive as `channel.message_received` events.
  *
- * @groupDescription Storage
- * Manage app-scoped directories and objects.
  *
  * @groupDescription Transport
  * Manage the Session Window and send lower-level protocol requests.
@@ -532,84 +520,6 @@ export class KeymasterConnectClient {
     options?: KeymasterRequestOptions
   ): Promise<ChannelSubscriptionSetResult> {
     return this.request("channel.subscription_set", params, options);
-  }
-
-  /**
-   * Calls `storage.list` to list paths in the verified application's namespace.
-   *
-   * @group Storage
-   */
-  storageList(params: StorageListParams, options?: KeymasterRequestOptions): Promise<StorageListResult> {
-    return this.request("storage.list", params, options);
-  }
-
-  /**
-   * Calls `storage.directory.create` to create an app-scoped directory.
-   *
-   * @group Storage
-   */
-  storageDirectoryCreate(
-    params: StorageDirectoryParams,
-    options?: KeymasterRequestOptions
-  ): Promise<StorageDirectoryResult> {
-    return this.request("storage.directory.create", params, options);
-  }
-
-  /**
-   * Calls `storage.directory.delete` to delete an app-scoped directory.
-   *
-   * @group Storage
-   */
-  storageDirectoryDelete(
-    params: StorageDirectoryParams,
-    options?: KeymasterRequestOptions
-  ): Promise<StorageDirectoryResult> {
-    return this.request("storage.directory.delete", params, options);
-  }
-
-  /**
-   * Calls `storage.put` to write an app-scoped object.
-   *
-   * @group Storage
-   */
-  storagePut(params: StoragePutParams, options?: KeymasterRequestOptions): Promise<StoragePutResult> {
-    return this.request("storage.put", params, options);
-  }
-
-  /**
-   * Calls `storage.get` to read an app-scoped object.
-   *
-   * @group Storage
-   */
-  storageGet(params: StorageGetParams, options?: KeymasterRequestOptions): Promise<StorageGetResult> {
-    return this.request("storage.get", params, options);
-  }
-
-  /**
-   * 可选加密写入：向钱包提交明文，钱包以当前钱包密钥和 App 公钥隔离后加密保存。
-   * 路径、条件创建语义与 storagePut 相同，size 返回明文字节数；不会返回加密密钥。
-   * @group Storage
-   */
-  storagePutEncrypted(params: StoragePutParams, options?: KeymasterRequestOptions): Promise<StoragePutResult> {
-    return this.request("storage.encrypted.put", params, options);
-  }
-
-  /**
-   * 可选加密读取：仅同一钱包能解密；offset/length 作用于明文，ifMatch 仍比较远端版本。
-   * 明文对象、错误格式、篡改或密钥不匹配均失败，不自动回退为普通读取。
-   * @group Storage
-   */
-  storageGetEncrypted(params: StorageGetParams, options?: KeymasterRequestOptions): Promise<StorageGetResult> {
-    return this.request("storage.encrypted.get", params, options);
-  }
-
-  /**
-   * Calls `storage.delete` to delete an app-scoped object.
-   *
-   * @group Storage
-   */
-  storageDelete(params: StorageDeleteParams, options?: KeymasterRequestOptions): Promise<StorageDeleteResult> {
-    return this.request("storage.delete", params, options);
   }
 
   /**

@@ -64,17 +64,6 @@
 - [ChannelSubscriptionSetResult](interfaces/ChannelSubscriptionSetResult.md)
 - [ChannelSubscriptionStatus](interfaces/ChannelSubscriptionStatus.md)
 - [ChannelMessageReceivedEventData](interfaces/ChannelMessageReceivedEventData.md)
-- [StorageListParams](interfaces/StorageListParams.md)
-- [StorageListEntry](interfaces/StorageListEntry.md)
-- [StorageListResult](interfaces/StorageListResult.md)
-- [StorageDirectoryParams](interfaces/StorageDirectoryParams.md)
-- [StorageDirectoryResult](interfaces/StorageDirectoryResult.md)
-- [StoragePutParams](interfaces/StoragePutParams.md)
-- [StoragePutResult](interfaces/StoragePutResult.md)
-- [StorageGetParams](interfaces/StorageGetParams.md)
-- [StorageGetResult](interfaces/StorageGetResult.md)
-- [StorageDeleteParams](interfaces/StorageDeleteParams.md)
-- [StorageDeleteResult](interfaces/StorageDeleteResult.md)
 - [MsFileStatParams](interfaces/MsFileStatParams.md)
 - [MsFileStatAvailableEntry](interfaces/MsFileStatAvailableEntry.md)
 - [MsFileStatAbsentEntry](interfaces/MsFileStatAbsentEntry.md)
@@ -171,9 +160,6 @@
 
 ## Variables
 
-- [STORAGE\_MAX\_PAYLOAD\_BYTES](variables/STORAGE_MAX_PAYLOAD_BYTES.md)
-- [STORAGE\_DEFAULT\_LIST\_LIMIT](variables/STORAGE_DEFAULT_LIST_LIMIT.md)
-- [STORAGE\_MAX\_LIST\_LIMIT](variables/STORAGE_MAX_LIST_LIMIT.md)
 - [MSFILE\_PROTOCOL\_ID](variables/MSFILE_PROTOCOL_ID.md)
 - [MSFILE\_MAX\_HEADER\_BYTES](variables/MSFILE_MAX_HEADER_BYTES.md)
 - [MSFILE\_MAX\_SEED\_BYTES](variables/MSFILE_MAX_SEED_BYTES.md)

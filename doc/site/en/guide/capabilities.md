@@ -20,10 +20,6 @@ All business calls use the current connection binding, carry no wallet public ke
 | `payment.pay` / `payment.status` | Pay on the connected wallet network with an outputs array / query payment status |
 | `channel.publish` | Publish signed JSON to an exact channel |
 | `channel.subscription_set` | Replace the current session's contributed exact subscription set |
-| `storage.list` | List directories and objects in the app-isolated namespace |
-| `storage.directory.create/delete` | Create or delete directory markers |
-| `storage.put/get/delete` | Write, read or delete objects |
-| `storage.encrypted.put/get` | Wallet encrypts before upload / returns plaintext after decrypt (`0.1.5` candidate, rejected by `0.1.4` receivers) |
 | `msfile.stat` | Query where content lives and supplier quotes |
 | `msfile.seed.read` / `msfile.block.read` | Read and verify a Seed or Block |
 
@@ -50,6 +46,6 @@ A successful publish only means Keymaster accepted the local operation, not that
 
 ## Identity requirements
 
-Storage and MSFile require a verified app identity plus the matching requirement. After a local cache reset, re-verify the existing proof in
+MSFile require a verified app identity plus the matching requirement. After a local cache reset, re-verify the existing proof in
 `resume({ appIdentity })`, see [Sessions](/en/concepts/sessions). Apps cannot specify
 suppliers, buckets, physical paths, credentials, private keys or payment amounts.

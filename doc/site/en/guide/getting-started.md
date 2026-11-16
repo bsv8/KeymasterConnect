@@ -34,7 +34,7 @@ await keymaster.logout(); // revokes the current-origin connection
 keymaster.close();        // closes transport only; not a logout
 ```
 
-Storage / MSFile access submits the issuer-signed proof in `login` or `resume({ appIdentity })`.
+MSFile access submits the issuer-signed proof in `login` or `resume({ appIdentity })`.
 A locked wallet may still ask for unlock or confirmation. The app never stores internal connection bindings; after a new window is opened, resume or log in again and re-check the returned identity.
 
 This is a hard cutover: the `networkIdentity` initializer, business `walletPublicKeyHex`, the `assetId` network selector, and the resume/logout public-key parameters are removed; the old protocol is incompatible. See [Release notes](/en/release-notes).

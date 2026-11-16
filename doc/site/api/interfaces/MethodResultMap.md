@@ -18,14 +18,6 @@
 | [`connect.launch`](#connectlaunch) | [`ConnectLaunchResult`](ConnectLaunchResult.md) | Yes | — |
 | [`channel.publish`](#channelpublish) | [`ChannelPublishResult`](ChannelPublishResult.md) | Yes | — |
 | [`channel.subscription_set`](#channelsubscription-set) | [`ChannelSubscriptionSetResult`](ChannelSubscriptionSetResult.md) | Yes | — |
-| [`storage.list`](#storagelist) | [`StorageListResult`](StorageListResult.md) | Yes | — |
-| [`storage.directory.create`](#storagedirectorycreate) | [`StorageDirectoryResult`](StorageDirectoryResult.md) | Yes | — |
-| [`storage.directory.delete`](#storagedirectorydelete) | [`StorageDirectoryResult`](StorageDirectoryResult.md) | Yes | — |
-| [`storage.put`](#storageput) | [`StoragePutResult`](StoragePutResult.md) | Yes | — |
-| [`storage.encrypted.put`](#storageencryptedput) | [`StoragePutResult`](StoragePutResult.md) | Yes | — |
-| [`storage.get`](#storageget) | [`StorageGetResult`](StorageGetResult.md) | Yes | — |
-| [`storage.encrypted.get`](#storageencryptedget) | [`StorageGetResult`](StorageGetResult.md) | Yes | — |
-| [`storage.delete`](#storagedelete) | [`StorageDeleteResult`](StorageDeleteResult.md) | Yes | — |
 | [`msfile.stat`](#msfilestat) | [`MsFileStatResult`](MsFileStatResult.md) | Yes | — |
 | [`msfile.seed.read`](#msfileseedread) | [`MsFileReadResult`](MsFileReadResult.md) | Yes | — |
 | [`msfile.block.read`](#msfileblockread) | [`MsFileReadResult`](MsFileReadResult.md) | Yes | — |
@@ -101,54 +93,6 @@
 ### channel.subscription\_set
 
 > **channel.subscription\_set**: [`ChannelSubscriptionSetResult`](ChannelSubscriptionSetResult.md)
-
-***
-
-### storage.list
-
-> **storage.list**: [`StorageListResult`](StorageListResult.md)
-
-***
-
-### storage.directory.create
-
-> **storage.directory.create**: [`StorageDirectoryResult`](StorageDirectoryResult.md)
-
-***
-
-### storage.directory.delete
-
-> **storage.directory.delete**: [`StorageDirectoryResult`](StorageDirectoryResult.md)
-
-***
-
-### storage.put
-
-> **storage.put**: [`StoragePutResult`](StoragePutResult.md)
-
-***
-
-### storage.encrypted.put
-
-> **storage.encrypted.put**: [`StoragePutResult`](StoragePutResult.md)
-
-***
-
-### storage.get
-
-> **storage.get**: [`StorageGetResult`](StorageGetResult.md)
-
-***
-
-### storage.encrypted.get
-
-> **storage.encrypted.get**: [`StorageGetResult`](StorageGetResult.md)
-
-***
-
-### storage.delete
-
-> **storage.delete**: [`StorageDeleteResult`](StorageDeleteResult.md)
 
 ***
 

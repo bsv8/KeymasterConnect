@@ -20,10 +20,6 @@ pageClass: capability-map-page
 | `payment.pay` / `payment.status` | 接続中ウォレットのネットワークに outputs 配列で支払う／支払状態を照会する |
 | `channel.publish` | 正確チャネルに署名付き JSON を公開する |
 | `channel.subscription_set` | 現在セッションの正確チャネル購読集合を置換する |
-| `storage.list` | アプリ隔離名前空間のディレクトリとオブジェクトを列挙する |
-| `storage.directory.create/delete` | ディレクトリマーカーを作成／削除する |
-| `storage.put/get/delete` | オブジェクトを書込／読取／削除する |
-| `storage.encrypted.put/get` | ウォレットが暗号化して保存／復号して返却する（`0.1.5` 候補、`0.1.4` Receiver は拒否） |
 | `msfile.stat` | コンテンツの所在と提供者見積を照会する |
 | `msfile.seed.read` / `msfile.block.read` | Seed または Block を読取り検証する |
 
@@ -50,6 +46,6 @@ const result = await keymaster.identityGet(params, {
 
 ## 身份要件
 
-Storage と MSFile は検証済みアプリ身份と対応 requirement（機能宣言）が必要です。ローカルキャッシュ初期化後は
+MSFile は検証済みアプリ身份と対応 requirement（機能宣言）が必要です。ローカルキャッシュ初期化後は
 `resume({ appIdentity })` で既存 proof を再検証してください（[セッション](/ja/concepts/sessions) 参照）。アプリは
 Supplier・バケット・物理パス・認証情報・秘密鍵・支払金額を指定できません。

@@ -100,136 +100,6 @@ export interface ChannelMessageReceivedEventData {
     rawEnvelope?: Uint8Array;
 }
 
-export interface StorageListParams {
-    /** 目录前缀。 */
-    prefix?: string;
-    /** 分页游标。 */
-    cursor?: string;
-    /** 每页数量。 */
-    limit?: number;
-}
-
-export interface StorageListEntry {
-    /** Connect 可见的相对路径。 */
-    path: string;
-    /** 当前目录下的文件名。 */
-    name: string;
-    /** 文件大小（字节）。 */
-    size: number;
-    /** 抽象版本标签。 */
-    revision?: string;
-    /** 最后修改时间。 */
-    lastModified?: string;
-}
-
-export interface StorageListResult {
-    /** 当前目录前缀。 */
-    prefix: string;
-    /** 父目录前缀。 */
-    parentPrefix: string;
-    /** 虚拟目录列表。 */
-    directories: Array<{
-        path: string;
-        name: string;
-    }>;
-    /** 当前页文件。 */
-    files: StorageListEntry[];
-    /** 目录 marker 路径。 */
-    markerPath?: string;
-    /** 下一页游标。 */
-    nextCursor?: string;
-}
-
-export interface StorageDirectoryParams {
-    /** 目录路径。 */
-    path: string;
-    /** 是否允许覆盖已有 marker。 */
-    overwrite?: boolean;
-}
-
-export interface StorageDirectoryResult {
-    /** 目录路径。 */
-    path: string;
-    /** 是否创建。 */
-    created?: boolean;
-    /** 是否删除。 */
-    deleted?: boolean;
-}
-
-export interface StoragePutParams {
-    /** 文件路径。 */
-    path: string;
-    /** 二进制文件内容。 */
-    content: BinaryField;
-    /** MIME 类型。 */
-    contentType?: string;
-    /** 是否覆盖已有对象。 */
-    overwrite?: boolean;
-}
-
-export interface StoragePutResult {
-    /** 文件路径。 */
-    path: string;
-    /** 写入大小（字节）。 */
-    size: number;
-    /** 抽象版本标签。 */
-    revision?: string;
-    /** 写入时间戳（毫秒）。 */
-    updatedAt: number;
-}
-
-export interface StorageGetParams {
-    /** 文件路径。 */
-    path: string;
-    /** 起始偏移（字节）。 */
-    offset?: number;
-    /** 读取长度（字节）。 */
-    length?: number;
-    /** 期望的抽象版本标签。 */
-    ifMatch?: string;
-}
-
-export interface StorageGetResult {
-    /** 文件路径。 */
-    path: string;
-    /** 二进制内容。 */
-    content: BinaryField;
-    /** MIME 类型。 */
-    contentType?: string;
-    /** 实际起始偏移。 */
-    offset: number;
-    /** 文件总大小（字节）。 */
-    totalSize: number;
-    /** 是否已读到文件结尾。 */
-    eof: boolean;
-    /** 抽象版本标签。 */
-    revision?: string;
-    /** 最后修改时间。 */
-    lastModified?: string;
-}
-
-export interface StorageDeleteParams {
-    /** 文件路径。 */
-    path: string;
-}
-
-export interface StorageDeleteResult {
-    /** 文件路径。 */
-    path: string;
-    /** 固定成功标记。 */
-    deleted: true;
-    /** 删除时间戳（毫秒）。 */
-    updatedAt: number;
-}
-
-// K-V、partition、commit 和 revision 契约。
-/** K-V 引擎的硬限制；字段名和单位均在此集中定义。 */
-export const STORAGE_MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
-
-export const STORAGE_DEFAULT_LIST_LIMIT = 200;
-
-export const STORAGE_MAX_LIST_LIMIT = 1000;
-
 /** libp2p protocol ID；wire 真值来自 MSFile Proxy Wire Messages v1。 */
 export const MSFILE_PROTOCOL_ID = "/msfile/1.0.0";
 
@@ -399,7 +269,7 @@ export type ProtocolErrorCode =
 /** Too many non-terminal Connect payment responsibilities. */
  | "payment_pending_limit"
 /** Same stable payment key with different frozen facts. */
- | "id_conflict" | "storage_not_configured" | "storage_unavailable" | "storage_invalid_path" | "storage_not_found" | "storage_conflict" | "storage_forbidden" | "storage_limit_exceeded" | "storage_provider_error" | "storage_identity_required"
+ | "id_conflict"
 // MSFile 稳定公开错误码（施工单 §6）。supplier wire error code 保留为
 // 内部诊断，不把任意远端字符串直接变成公开 code。
  | "msfile_not_configured" | "msfile_unavailable" | "msfile_identity_required" | "msfile_supplier_not_found" | "msfile_supplier_disabled" | "msfile_invalid_hash" | "msfile_price_limit_exceeded" | "msfile_integrity_error" | "msfile_content_not_found" | "msfile_rate_limited" | "msfile_supplier_error" | "msfile_transport_error" | "msfile_protocol_error" | "internal_error";
@@ -656,15 +526,7 @@ export const PROTOCOL_METHODS = [
     // Channel 是唯一的公开频道 API，见 docs/SatSubscription与Channel.md。
     "channel.publish",
     "channel.subscription_set",
-    "storage.list",
-    "storage.directory.create",
-    "storage.directory.delete",
-    "storage.put",
-    "storage.get",
-    "storage.encrypted.put",
-    "storage.encrypted.get",
-    "storage.delete",
-    // MSFile 对外方法族，见 docs/MSFile.md。与 storage.* 同为
+    // MSFile 对外方法族，见 docs/MSFile.md。作为
     // session-bound 且强制要求可信来源会话；Seed/Block 显式区分，
     // Read 不接受 maxPriceSatoshis（金额只能来自 Keymaster 设置或用户确认）。
     "msfile.stat",
@@ -690,14 +552,6 @@ export interface MethodParamsMap {
     "connect.launch": ConnectLaunchParams;
     "channel.publish": ChannelPublishParams;
     "channel.subscription_set": ChannelSubscriptionSetParams;
-    "storage.list": StorageListParams;
-    "storage.directory.create": StorageDirectoryParams;
-    "storage.directory.delete": StorageDirectoryParams;
-    "storage.put": StoragePutParams;
-    "storage.encrypted.put": StoragePutParams;
-    "storage.get": StorageGetParams;
-    "storage.encrypted.get": StorageGetParams;
-    "storage.delete": StorageDeleteParams;
     "msfile.stat": MsFileStatParams;
     "msfile.seed.read": MsFileSeedReadParams;
     "msfile.block.read": MsFileBlockReadParams;
@@ -715,14 +569,6 @@ export interface MethodResultMap {
     "connect.launch": ConnectLaunchResult;
     "channel.publish": ChannelPublishResult;
     "channel.subscription_set": ChannelSubscriptionSetResult;
-    "storage.list": StorageListResult;
-    "storage.directory.create": StorageDirectoryResult;
-    "storage.directory.delete": StorageDirectoryResult;
-    "storage.put": StoragePutResult;
-    "storage.encrypted.put": StoragePutResult;
-    "storage.get": StorageGetResult;
-    "storage.encrypted.get": StorageGetResult;
-    "storage.delete": StorageDeleteResult;
     "msfile.stat": MsFileStatResult;
     "msfile.seed.read": MsFileReadResult;
     "msfile.block.read": MsFileReadResult;

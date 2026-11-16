@@ -21,14 +21,6 @@
 | [`connect.launch`](#connectlaunch) | [`ConnectLaunchParams`](ConnectLaunchParams.md) | Yes | — |
 | [`channel.publish`](#channelpublish) | [`ChannelPublishParams`](ChannelPublishParams.md) | Yes | — |
 | [`channel.subscription_set`](#channelsubscription-set) | [`ChannelSubscriptionSetParams`](ChannelSubscriptionSetParams.md) | Yes | — |
-| [`storage.list`](#storagelist) | [`StorageListParams`](StorageListParams.md) | Yes | — |
-| [`storage.directory.create`](#storagedirectorycreate) | [`StorageDirectoryParams`](StorageDirectoryParams.md) | Yes | — |
-| [`storage.directory.delete`](#storagedirectorydelete) | [`StorageDirectoryParams`](StorageDirectoryParams.md) | Yes | — |
-| [`storage.put`](#storageput) | [`StoragePutParams`](StoragePutParams.md) | Yes | — |
-| [`storage.encrypted.put`](#storageencryptedput) | [`StoragePutParams`](StoragePutParams.md) | Yes | — |
-| [`storage.get`](#storageget) | [`StorageGetParams`](StorageGetParams.md) | Yes | — |
-| [`storage.encrypted.get`](#storageencryptedget) | [`StorageGetParams`](StorageGetParams.md) | Yes | — |
-| [`storage.delete`](#storagedelete) | [`StorageDeleteParams`](StorageDeleteParams.md) | Yes | — |
 | [`msfile.stat`](#msfilestat) | [`MsFileStatParams`](MsFileStatParams.md) | Yes | — |
 | [`msfile.seed.read`](#msfileseedread) | [`MsFileSeedReadParams`](MsFileSeedReadParams.md) | Yes | — |
 | [`msfile.block.read`](#msfileblockread) | [`MsFileBlockReadParams`](MsFileBlockReadParams.md) | Yes | — |
@@ -104,54 +96,6 @@
 ### channel.subscription\_set
 
 > **channel.subscription\_set**: [`ChannelSubscriptionSetParams`](ChannelSubscriptionSetParams.md)
-
-***
-
-### storage.list
-
-> **storage.list**: [`StorageListParams`](StorageListParams.md)
-
-***
-
-### storage.directory.create
-
-> **storage.directory.create**: [`StorageDirectoryParams`](StorageDirectoryParams.md)
-
-***
-
-### storage.directory.delete
-
-> **storage.directory.delete**: [`StorageDirectoryParams`](StorageDirectoryParams.md)
-
-***
-
-### storage.put
-
-> **storage.put**: [`StoragePutParams`](StoragePutParams.md)
-
-***
-
-### storage.encrypted.put
-
-> **storage.encrypted.put**: [`StoragePutParams`](StoragePutParams.md)
-
-***
-
-### storage.get
-
-> **storage.get**: [`StorageGetParams`](StorageGetParams.md)
-
-***
-
-### storage.encrypted.get
-
-> **storage.encrypted.get**: [`StorageGetParams`](StorageGetParams.md)
-
-***
-
-### storage.delete
-
-> **storage.delete**: [`StorageDeleteParams`](StorageDeleteParams.md)
 
 ***
 

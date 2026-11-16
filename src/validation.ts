@@ -2,10 +2,9 @@ import * as P from "./protocol.js";
 
 import {
   validateNetworkIdentity, PROTOCOL_VERSION, PROTOCOL_METHODS,
-  STORAGE_MAX_PAYLOAD_BYTES, STORAGE_DEFAULT_LIST_LIMIT, STORAGE_MAX_LIST_LIMIT, isValidMsFileSourceId,
+  isValidMsFileSourceId,
   type NetworkIdentity, type JSONValue, type ChannelPublishParams, type ChannelSubscriptionSetParams,
-  type StorageListParams, type StorageDirectoryParams, type StoragePutParams,
-  type StorageGetParams, type StorageDeleteParams, type MsFileStatParams, type MsFileSeedReadParams,
+  type MsFileStatParams, type MsFileSeedReadParams,
   type MsFileBlockReadParams, type BinaryField, type ProtocolErrorCode, type IdentityGetParams,
   type IntentSignParams, type CipherEncryptParams, type CipherDecryptParams, type P2pkhTransferAssetId,
   type PaymentPayParams, type PaymentStatusParams,
@@ -278,117 +277,6 @@ function requireExactKeys(obj: Record<string, unknown>, keys: readonly string[],
     if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
         throw new ProtocolValidationError("invalid_request", `${name} contains unsupported fields`);
     }
-}
-
-/* ============== storage.* validation ============== */
-const STORAGE_FORBIDDEN_FIELDS = [
-    "appPublicKeyHex",
-    "appPublicKey",
-    "publicationProof",
-    "appProof",
-    "publisherPublicKeyHex",
-    "publisherPublicKey",
-    "appId",
-    "appName",
-    "appIdentity",
-    "namespaceRoot",
-    "bucket",
-    "endpoint",
-    "providerId",
-    "s3Key",
-    "s3UploadId",
-    "accessKeyId",
-    "secretAccessKey"
-] as const;
-
-function storageObject(raw: unknown, name: string): Record<string, unknown> {
-    const obj = expectObject(raw, name);
-    for (const field of STORAGE_FORBIDDEN_FIELDS) {
-        if (Object.prototype.hasOwnProperty.call(obj, field))
-            throw new ProtocolValidationError("invalid_request", `${name} contains a forbidden field`);
-    }
-    return obj;
-}
-
-function storagePath(value: unknown, field: string, allowEmpty = false): string {
-    const path = expectString(value, field);
-    if (!allowEmpty && path.length === 0)
-        throw new ProtocolValidationError("invalid_request", `${field} must not be empty`);
-    const withoutTrailingSlash = path.endsWith("/") ? path.slice(0, -1) : path;
-    if (path.length > 1024 || path.startsWith("/") || path.includes("\\") || path.includes("\0") || /[\u0000-\u001f\u007f]/u.test(path) || /[\u2044\u2215\u29f8\uff0f]/u.test(path)) {
-        throw new ProtocolValidationError("invalid_request", `${field} is not a valid relative path`);
-    }
-    const segments = withoutTrailingSlash.split("/");
-    if ((!withoutTrailingSlash && !allowEmpty) || (withoutTrailingSlash && segments.some((segment) => !segment || segment === "." || segment === ".." || segment.length > 255))) {
-        throw new ProtocolValidationError("invalid_request", `${field} is not a valid relative path`);
-    }
-    return path;
-}
-
-function storageBinary(value: unknown, field: string): BinaryField {
-    const binary = parseBinaryField(value, field);
-    if (binary.bytes.byteLength > STORAGE_MAX_PAYLOAD_BYTES) {
-        throw new ProtocolValidationError("storage_limit_exceeded", `${field} exceeds the maximum payload size`);
-    }
-    return binary;
-}
-
-function validateStorageListParams(raw: unknown): StorageListParams {
-    const obj = storageObject(raw, "storage.list params");
-    const prefix = obj.prefix === undefined ? "" : storagePath(obj.prefix, "prefix", true);
-    const cursor = obj.cursor === undefined ? undefined : expectNonEmptyString(obj.cursor, "cursor");
-    const limit = obj.limit === undefined ? STORAGE_DEFAULT_LIST_LIMIT : obj.limit;
-    if (typeof limit !== "number" || !Number.isInteger(limit) || limit < 1 || limit > STORAGE_MAX_LIST_LIMIT) {
-        throw new ProtocolValidationError("invalid_request", "limit must be between 1 and 1000");
-    }
-    return { prefix, cursor, limit };
-}
-
-function validateStorageDirectoryParams(raw: unknown, name: string, allowOverwrite: boolean): StorageDirectoryParams {
-    const obj = storageObject(raw, `${name} params`);
-    const path = storagePath(obj.path, "path");
-    const overwrite = obj.overwrite === undefined ? undefined : obj.overwrite;
-    if (overwrite !== undefined && typeof overwrite !== "boolean")
-        throw new ProtocolValidationError("invalid_request", "overwrite must be boolean");
-    return allowOverwrite ? { path, overwrite } : { path };
-}
-
-function validateStoragePutParams(raw: unknown): StoragePutParams {
-    const obj = storageObject(raw, "storage.put params");
-    const path = storagePath(obj.path, "path");
-    if (path.endsWith("/"))
-        throw new ProtocolValidationError("invalid_request", "object path must not end with '/'");
-    const content = storageBinary(obj.content, "content");
-    const contentType = obj.contentType === undefined ? undefined : expectString(obj.contentType, "contentType");
-    const overwrite = obj.overwrite === undefined ? undefined : obj.overwrite;
-    if (overwrite !== undefined && typeof overwrite !== "boolean")
-        throw new ProtocolValidationError("invalid_request", "overwrite must be boolean");
-    return { path, content, contentType, overwrite };
-}
-
-function validateStorageGetParams(raw: unknown): StorageGetParams {
-    const obj = storageObject(raw, "storage.get params");
-    const path = storagePath(obj.path, "path");
-    if (path.endsWith("/"))
-        throw new ProtocolValidationError("invalid_request", "object path must not end with '/'");
-    const offset = obj.offset === undefined ? 0 : obj.offset;
-    const length = obj.length === undefined ? STORAGE_MAX_PAYLOAD_BYTES : obj.length;
-    if (typeof offset !== "number" || !Number.isSafeInteger(offset) || offset < 0)
-        throw new ProtocolValidationError("invalid_request", "offset must be a non-negative safe integer");
-    if (typeof length !== "number" || !Number.isSafeInteger(length) || length < 1 || length > STORAGE_MAX_PAYLOAD_BYTES)
-        throw new ProtocolValidationError("storage_limit_exceeded", "length exceeds the maximum payload size");
-    if (offset > Number.MAX_SAFE_INTEGER - (length - 1))
-        throw new ProtocolValidationError("storage_limit_exceeded", "requested range exceeds safe integer bounds");
-    const ifMatch = obj.ifMatch === undefined ? undefined : expectString(obj.ifMatch, "ifMatch");
-    return { path, offset, length, ifMatch };
-}
-
-function validateStorageDeleteParams(raw: unknown): StorageDeleteParams {
-    const obj = storageObject(raw, "storage.delete params");
-    const path = storagePath(obj.path, "path");
-    if (path.endsWith("/"))
-        throw new ProtocolValidationError("invalid_request", "object path must not end with '/'");
-    return { path };
 }
 
 /* ============== msfile.* validation（现行说明：BSV8_E2E/docs/keymaster.cc/MSFile.md） ============== */
@@ -682,14 +570,6 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
         case "payment.status": normalized = validatePaymentStatusParams(params); break;
         case "channel.publish": normalized = validateChannelPublishParams(params); break;
         case "channel.subscription_set": normalized = validateChannelSubscriptionSetParams(params); break;
-        case "storage.list": normalized = validateStorageListParams(params); break;
-        case "storage.directory.create": normalized = validateStorageDirectoryParams(params, method, true); break;
-        case "storage.directory.delete": normalized = validateStorageDirectoryParams(params, method, false); break;
-        case "storage.encrypted.put":
-        case "storage.put": normalized = validateStoragePutParams(params); break;
-        case "storage.encrypted.get":
-        case "storage.get": normalized = validateStorageGetParams(params); break;
-        case "storage.delete": normalized = validateStorageDeleteParams(params); break;
         case "msfile.stat": normalized = validateMsFileStatParams(params); break;
         case "msfile.seed.read": normalized = validateMsFileSeedReadParams(params); break;
         case "msfile.block.read": normalized = validateMsFileBlockReadParams(params); break;
