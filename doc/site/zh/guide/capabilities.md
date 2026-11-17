@@ -5,13 +5,12 @@ pageClass: capability-map-page
 # 能力索引
 
 所有方法都由 [`KeymasterConnectClient`](/api/classes/KeymasterConnectClient) 提供。
-首次连接无需预知公钥和网络；`login / resume / launch` 返回 `networkIdentity`。
+首次连接无需预知公钥和网络；`login / launch` 返回 `networkIdentity`。
 所有业务使用当前连接绑定，不携带钱包公钥或网络选择字段，也不能越过业务确认或验签。
 
 | 方法 | 中文用途 |
 | --- | --- |
 | `connect.login` | 用户确认钱包身份后建立连接 |
-| `connect.resume` | 恢复当前钱包连接，返回实际身份；缺缓存时重建缺省上下文 |
 | `connect.logout` | 撤销当前来源的本地连接、订阅和运行授权 |
 | `connect.launch` | 使用 appView 一次性令牌建立会话 |
 | `identity.get` | 返回有有效期、接收方和签名的身份断言 |
@@ -44,8 +43,6 @@ const result = await keymaster.identityGet(params, {
 `channel.message_received` 推送已经验签的频道、发行人公钥、消息编号和 JSON 内容。
 成功发布只表示 Keymaster 接受本地操作，不表示远端已经收到。
 
-## 身份要求
+## 连接生命周期
 
-MSFile 需要已验证 App 身份及相应 requirement（所需能力声明）。本地缓存重置后，可在
-`resume({ appIdentity })` 中重新验证已有 proof，见[会话](/zh/concepts/sessions)。App 不能指定
-Supplier、桶、物理路径、凭据、私钥或付款额度。
+连接中断或页面刷新后，App 主动连接须重新登录；钱包启动的 App 须从钱包重新打开。SDK 不保存授权恢复记录、不自动重连、不重放旧业务请求。用户直接关闭页签，无需发送关闭通知或等待回复。长期应用操作许可由钱包独立保存，关闭页签不撤回已签名或广播的操作。

@@ -5,13 +5,12 @@ pageClass: capability-map-page
 # 機能一覧
 
 すべてのメソッドは [`KeymasterConnectClient`](/api/classes/KeymasterConnectClient) が提供します。
-初回接続時に公開鍵やネットワークを事前に知る必要はありません。`login / resume / launch` は `networkIdentity` を返します。
+初回接続時に公開鍵やネットワークを事前に知る必要はありません。`login / launch` は `networkIdentity` を返します。
 すべての業務は現在の接続紐付けを使用し、ウォレット公開鍵やネットワーク選択欄を持たず、業務確認や検証を回避できません。
 
 | メソッド | 用途 |
 | --- | --- |
 | `connect.login` | ユーザーがウォレット身份を確認後に接続を確立する |
-| `connect.resume` | 現在ウォレット接続を再開し、実際の身份を返す。キャッシュ空時は既定コンテキストを再構築する |
 | `connect.logout` | 現在 origin のローカル接続・購読・実行認可を取消する |
 | `connect.launch` | appView ワンタイムトークンでセッションを確立する |
 | `identity.get` | 有効期限・宛先・署名付き身份表明を返す |
@@ -44,8 +43,6 @@ const result = await keymaster.identityGet(params, {
 `channel.message_received` は検証済みチャネル・発行者公開鍵・メッセージ番号・JSON 内容を通知します。
 公開成功は Keymaster がローカル操作を受理した意味であり、遠端が受信した意味ではありません。
 
-## 身份要件
+## 接続ライフサイクル
 
-MSFile は検証済みアプリ身份と対応 requirement（機能宣言）が必要です。ローカルキャッシュ初期化後は
-`resume({ appIdentity })` で既存 proof を再検証してください（[セッション](/ja/concepts/sessions) 参照）。アプリは
-Supplier・バケット・物理パス・認証情報・秘密鍵・支払金額を指定できません。
+切断またはページ更新後、ウォレットを開くアプリは再ログインし、ウォレットから起動したアプリはウォレットから開き直します。SDK は認可の復元情報を保存せず、自動再接続や業務リクエストの再送を行いません。タブは直接閉じることができ、終了通知や応答待ちは不要です。長期的なアプリ操作許可はウォレットが別に管理します。署名済み・送信済みの処理はタブを閉じても取り消されません。

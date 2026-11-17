@@ -40,26 +40,13 @@ export interface ReceiverRequest<M extends ProtocolMethod = ProtocolMethod> {
   readonly walletGeneration: string;
   readonly runGeneration: string;
   readonly bindingId?: string;
-  readonly authorizationId?: string;
   readonly signal: AbortSignal;
 }
 interface Binding { id: string; origin: string; identity: NetworkIdentity; walletGeneration: string; runGeneration: string; }
 interface Pending { context: ReceiverRequest; abort: AbortController; }
 
 /** 判断建立连接的方法；ready 只表示传输可用，不属于身份授权。 */
-export function isEstablishing(method: string): boolean { return ["connect.login", "connect.resume", "connect.launch"].includes(method); }
-
-/** 生产钱包与闭环测试共用同一接收端，不内置测试业务或默认自动授权。 */
-/** 外部恢复控制只携带不透明授权引用，不能夹带业务参数或钱包选择器。 */
-export function parseReconnectMessage(data: unknown): import("./protocol.js").ProtocolReconnectMessage | null {
-  if (!data || typeof data !== "object") return null;
-  const value = data as Record<string, unknown>;
-  if (value.v !== PROTOCOL_VERSION || value.type !== "reconnect" || typeof value.id !== "string" || !value.id || value.id.length > 128
-    || typeof value.authorizationId !== "string" || !value.authorizationId || value.authorizationId.length > 128
-    || (value.bindingId !== undefined && typeof value.bindingId !== "string")
-    || Object.keys(value).some(key => !["v", "type", "id", "authorizationId", "bindingId"].includes(key))) return null;
-  return value as unknown as import("./protocol.js").ProtocolReconnectMessage;
-}
+export function isEstablishing(method: string): boolean { return ["connect.login", "connect.launch"].includes(method); }
 
 export class KeymasterConnectReceiver {
   private readonly bindings = new Map<ConnectPeer, Binding>();
@@ -92,9 +79,7 @@ export class KeymasterConnectReceiver {
   /** 校验并签发请求上下文。重复在途 ID 被忽略；非法可信请求返回标准错误。 */
   async accept(event: ReceiverMessage): Promise<ReceiverRequest | null> {
     if (!this.isAllowedPeer(event)) return null;
-    const reconnect = parseReconnectMessage(event.data);
-    // 持久授权由钱包宿主验证；Receiver 只把已登记来源的恢复控制转换为标准 resume。
-    const raw = reconnect ? { v: PROTOCOL_VERSION, type: "request", id: reconnect.id, method: "connect.resume", params: {} } : event.data as Record<string, unknown> | null;
+    const raw = event.data as Record<string, unknown> | null;
     if (!raw || typeof raw !== "object" || raw.type !== "request") return null;
     // 重复 ID 不能借非法参数生成第二条错误响应并截断原请求的等待。
     if (typeof raw.id === "string" && this.pending.get(event.source)?.has(raw.id)) return null;
@@ -120,7 +105,7 @@ export class KeymasterConnectReceiver {
       const abort = new AbortController();
       const context: ReceiverRequest = Object.freeze({ ...parsed, source: event.source!, origin: event.origin,
         networkIdentity: identity, walletGeneration: before.walletGeneration, runGeneration: before.runGeneration,
-        bindingId: establishing ? undefined : binding!.id, ...(reconnect ? { authorizationId: reconnect.authorizationId } : {}), signal: abort.signal });
+        bindingId: establishing ? undefined : binding!.id, signal: abort.signal });
       this.isAllowedPeer(event, true);
       requests.set(parsed.id, { context, abort });
       return context;
@@ -165,20 +150,8 @@ export class KeymasterConnectReceiver {
       const connected = result as { networkIdentity?: unknown; walletPublicKeyHex?: unknown; ownerPublicKeyHex?: unknown };
       if (!sameNetworkIdentity(validateNetworkIdentity(connected.networkIdentity), context.networkIdentity) || "walletPublicKeyHex" in connected || "ownerPublicKeyHex" in connected) throw new ProtocolValidationError("invalid_request", "Invalid public connection result");
       publicResult = { ...result, networkIdentity: context.networkIdentity } as MethodResult;
-      // resume 心跳必须复用仍在同一运行代际的有效 binding。每次 resume 都
-      // 轮换 bindingId 会被客户端判定为“runtime replaced”，并拒绝在途业务。
-      const existing = this.bindings.get(context.source);
-      const reusable = context.method === "connect.resume" && existing
-        && existing.origin === context.origin
-        && existing.walletGeneration === context.walletGeneration
-        && existing.runGeneration === context.runGeneration
-        && sameNetworkIdentity(existing.identity, context.networkIdentity);
-      if (reusable) {
-        bindingId = existing.id;
-      } else {
-        bindingId = this.options.randomUUID?.() || crypto.randomUUID();
-        this.bindings.set(context.source, { id: bindingId, origin: context.origin, identity: context.networkIdentity, walletGeneration: context.walletGeneration, runGeneration: context.runGeneration });
-      }
+      bindingId = this.options.randomUUID?.() || crypto.randomUUID();
+      this.bindings.set(context.source, { id: bindingId, origin: context.origin, identity: context.networkIdentity, walletGeneration: context.walletGeneration, runGeneration: context.runGeneration });
     }
     this.finish(context);
     if (context.method === "connect.logout") this.bindings.delete(context.source);
@@ -200,7 +173,7 @@ export class KeymasterConnectReceiver {
     try { target.postMessage({ ...event, networkIdentity: binding.identity, bindingId: binding.id }, origin); } catch { /* 窗口退出不重试推送。 */ }
   }
 
-  /** 只读核对现存瞬时绑定；恢复轮询不能不断替换仍有效的绑定或打断在途业务。 */
+  /** 只读核对现存瞬时绑定，不创建新连接。 */
   matchesBinding(source: ConnectPeer, origin: string, id: string | undefined): boolean {
     const binding = this.bindings.get(source), lifecycle = this.options.lifecycle();
     return !!binding && binding.id === id && binding.origin === origin && binding.walletGeneration === lifecycle.walletGeneration && binding.runGeneration === lifecycle.runGeneration && this.isAllowedPeer({ source, origin, data: null });

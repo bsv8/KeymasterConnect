@@ -4,7 +4,7 @@
 import { KeymasterProtocolError, KeymasterTransportError } from "keymaster-connect";
 
 try {
-  await keymaster.resume();
+  await keymaster.login({ text: "Sign in" });
 } catch (error) {
   if (error instanceof KeymasterProtocolError) console.log(error.code);
   if (error instanceof KeymasterTransportError) console.log(error.code);

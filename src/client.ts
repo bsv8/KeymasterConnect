@@ -2,13 +2,6 @@ import { AiToolClient } from "./toolClient.js";
 import { readOwnPublicationProof } from "./internal/publicationProof.js";
 import type { AiTool, AiToolsRegistered } from "./tools.js";
 import {
-  clearConnectionRecovery,
-  loadConnectionRecoveryRecord,
-  resolveRecoveryStorage,
-  saveConnectionRecoveryRecord,
-  type ConnectionRecoveryStorage,
-} from "./recovery.js";
-import {
   PROTOCOL_VERSION, PROTOCOL_METHODS,
   validateNetworkIdentity, sameNetworkIdentity, type NetworkIdentity,
   type ChannelPublishParams,
@@ -24,8 +17,6 @@ import {
   type ConnectLoginParams,
   type ConnectLoginResult,
   type ConnectLogoutResult,
-  type ConnectResumeResult,
-  type ConnectResumeParams,
   type IdentityGetParams,
   type IdentityGetResult,
   type IntentSignParams,
@@ -51,7 +42,7 @@ import {
 export type KeymasterConnectMode = "iframe" | "appView" | "popup";
 
 /** Observable lifecycle of the browser transport. */
-export type KeymasterConnectState = "idle" | "opening" | "connected" | "paused" | "disconnected";
+export type KeymasterConnectState = "idle" | "opening" | "connected" | "disconnected";
 
 /** Failures produced by the browser transport before a protocol result exists. */
 export type KeymasterTransportErrorCode =
@@ -64,8 +55,7 @@ export type KeymasterTransportErrorCode =
   | "no_opener"
   | "appview_session_lost"
   | "client_closed"
-  | "unsupported_protocol"
-  | "wallet_paused";
+  | "unsupported_protocol";
 
 /** A browser transport failure. Protocol rejections use {@link KeymasterProtocolError}. */
 export class KeymasterTransportError extends Error {
@@ -111,6 +101,9 @@ export interface KeymasterBrowserEnvironment {
   setInterval(handler: () => void, intervalMs: number): number;
   clearInterval(timer: number): void;
   randomUUID(): string;
+  /** 页面离开时清理本地资源，不等待远端。 */
+  addPageHideListener?(listener: () => void): void;
+  removePageHideListener?(listener: () => void): void;
 }
 
 /** Configuration for {@link KeymasterConnectClient}. */
@@ -133,8 +126,6 @@ export interface KeymasterConnectOptions {
   onStateChange?: (state: KeymasterConnectState) => void;
   /** Optional browser adapter, normally only supplied by tests. */
   environment?: KeymasterBrowserEnvironment;
-  /** 可替换的刷新恢复存储；默认访问 Demo origin 下的 sessionStorage，不降级到 localStorage。 */
-  recoveryStorage?: ConnectionRecoveryStorage;
 }
 
 interface PendingRequest {
@@ -182,7 +173,7 @@ const DEFAULT_CLOSE_POLL_MS = 500;
  * ```
  *
  * @groupDescription Connect
- * Create, restore, revoke, or launch a persistent Connect session.
+ * 建立、撤销或启动 Connect 连接。
  *
  * @groupDescription Identity
  * Read signed identity claims or sign an application intent.
@@ -217,10 +208,6 @@ export class KeymasterConnectClient {
 
   /** Identity returned by the authenticated wallet, or null before establishment. */
   get networkIdentity(): Readonly<NetworkIdentity> | null { return this.identityValue; }
-  /** 最近一次持久化失败的原因；成功后清零。登录成功不受写入失败影响。 */
-  get recoverySaveError(): string | null { return this.recoverySaveErrorValue; }
-  /** 刷新恢复存储是否可用；不可用时仍可登录，但刷新后需重新登录。 */
-  get recoveryStorageAvailable(): boolean { return this.recoveryStorage !== null; }
   private readonly targetOrigin: string;
   private readonly mode: KeymasterConnectMode;
   private readonly environment: KeymasterBrowserEnvironment;
@@ -236,19 +223,8 @@ export class KeymasterConnectClient {
   private readyTimer: number | null = null;
   private closePoller: number | null = null;
   private authorizationId: string | null = null;
-  private authorizedIdentity: Readonly<NetworkIdentity> | null = null;
-  private recoveryId: string | null = null;
-  private readonly recoveryStorage: ConnectionRecoveryStorage | null;
-  private recoverySaveErrorValue: string | null = null;
-  /** 显式恢复期间暂停后台心跳；结束（成功/失败/取消/超时）后恢复。 */
-  private explicitRecoveryActive = false;
-  /** 内存授权是否已验证：login/launch/恢复成功置 true；仅从存储装载的待验证凭据为 false。 */
-  private authorizationVerified = false;
-  /** 当前传输窗口是否已可信就绪（收到过匹配来源与窗口的 ready）；新开窗口后重置，存在≠就绪。 */
-  private sessionWindowReady = false;
-  /** 新 popup 首发前等待可信窗口 ready 的一次性继续函数；超时/结束时清空。 */
-  private recoveryReadyContinue: (() => void) | null = null;
-  private recoveryWaiters = new Set<{ resolve(result: ConnectResumeResult): void; reject(error: unknown): void }>();
+  /** 等待 ready 与授权响应共用一个建连位置，取消不能影响其他调用。 */
+  private establishmentActive = false;
 
   constructor(options: KeymasterConnectOptions) {
     if ("networkIdentity" in options) throw new TypeError("networkIdentity option has been removed; read identity from the connection result");
@@ -263,7 +239,6 @@ export class KeymasterConnectClient {
       closePollMs: positiveNumber(options.closePollMs ?? DEFAULT_CLOSE_POLL_MS, "closePollMs")
     };
     this.environment = options.environment ?? createBrowserEnvironment();
-    this.recoveryStorage = resolveRecoveryStorage(options.recoveryStorage);
   }
 
   /**
@@ -278,15 +253,9 @@ export class KeymasterConnectClient {
   /**
    * Establishes the browser transport.
    *
-   * 只建立传输，不恢复授权：iframe / appView 绑定真实 parent / opener；
-   * popup 打开完整钱包等待 ready。刷新后的授权恢复请使用 `resume()`，
-   * 它会先装载本地恢复记录再复用 `continueConnection()`；`connect()` 本身
-   * 不读取恢复记录、不自动恢复。
-   *
    * @group Transport
    */
   connect(): Promise<void> {
-    if (this.explicitRecoveryActive) return Promise.reject(new TypeError("Connection recovery is already in progress"));
     return this.mode === "popup" ? this.connectPopup() : this.connectAppView();
   }
 
@@ -307,77 +276,88 @@ export class KeymasterConnectClient {
     for (const field of ["walletPublicKeyHex", "networkIdentity", "bsvNetwork", "assetId"]) {
       if (field in params) throw new TypeError(`Removed wallet selector: ${field}`);
     }
-    if (method === "connect.resume" && this.authorizationId) {
-      void params;
-      return this.continueConnection(options) as Promise<MethodResult<M>>;
-    }
-    const establishing = ["connect.login", "connect.resume", "connect.launch"].includes(method);
-    // 建连证明在传输层统一附带：无论调用方走 login()/launch() 便捷方法还是
-    // 直接 request("connect.login"/"connect.launch")，当前入口的 URL 来源证明
-    // 都会被附上（若有）；钱包核对签名与可信来源。resume 沿用快照不携带。
-    let effectiveParams = params;
-    if ((method === "connect.login" || method === "connect.launch") && !("publicationProof" in params)) {
-      effectiveParams = withOwnPublicationProof(params);
-    }
-    if (!establishing && this.stateValue === "paused") throw new KeymasterTransportError("wallet_paused", "Wallet connection is paused; old business requests are never replayed");
-    if (establishing && this.pending.size) throw new TypeError("Cannot establish a connection while requests are pending");
-    // 显式恢复同样占用唯一的建立连接位：login/launch/普通 resume 不得与之并发。
-    if (establishing && this.explicitRecoveryActive) throw new TypeError("Connection recovery is already in progress");
-    if (!establishing && !this.bindingId) throw new KeymasterProtocolError("invalid_request", "Login, resume or launch before making business requests");
-    if ([...this.pending.values()].some(request => ["connect.login", "connect.resume", "connect.launch"].includes(request.method))) throw new TypeError("Connection establishment is already pending");
-    await this.connect();
-    if (establishing && this.pending.size) throw new TypeError("Cannot establish a connection while requests are pending");
-    if ([...this.pending.values()].some(request => ["connect.login", "connect.resume", "connect.launch"].includes(request.method))) throw new TypeError("Connection establishment is already pending");
-    if (establishing && this.explicitRecoveryActive) throw new TypeError("Connection recovery is already in progress");
-    if (options.signal?.aborted) throw abortReason(options.signal);
-
-    const target = this.sessionWindow;
-    if (!target || isWindowClosed(target)) {
-      throw new KeymasterTransportError("wallet_closed", "Keymaster parent wallet is closed");
-    }
-    const requestId = options.requestId ?? this.environment.randomUUID();
-    if (!requestId || this.pending.has(requestId)) {
-      throw new TypeError("requestId must be non-empty and unique among pending requests");
-    }
-    const timeoutMs = positiveNumber(options.timeoutMs ?? this.options.requestTimeoutMs, "timeoutMs");
-
-    return new Promise<MethodResult<M>>((resolve, reject) => {
-      const timer = this.environment.setTimeout(() => {
-        this.postCancel(requestId);
-        this.deletePending(requestId);
-        reject(new KeymasterTransportError("request_timeout", `Keymaster request timed out: ${method}`));
-      }, timeoutMs);
-      const abortListener = options.signal
-        ? () => {
-            this.postCancel(requestId);
-            this.deletePending(requestId);
-            reject(abortReason(options.signal!));
-          }
-        : undefined;
-      if (abortListener) options.signal!.addEventListener("abort", abortListener, { once: true });
-      this.pending.set(requestId, {
-        method,
-        resolve: (value) => resolve(value as MethodResult<M>),
-        reject,
-        timer,
-        signal: options.signal,
-        abortListener
-      });
-
-      try {
-        target.postMessage({
-          v: PROTOCOL_VERSION,
-          type: "request",
-          ...(!establishing ? { bindingId: this.bindingId } : {}),
-          id: requestId,
-          method,
-          params: effectiveParams
-        }, this.targetOrigin);
-      } catch (cause) {
-        this.deletePending(requestId);
-        reject(new KeymasterTransportError("send_failed", errorMessage(cause, "Unable to send Keymaster request")));
+    const establishing = ["connect.login", "connect.launch"].includes(method);
+    if (this.establishmentActive) throw new TypeError("Connection establishment is already pending");
+    if (establishing) this.establishmentActive = true;
+    try {
+      // 建连证明在传输层统一附带：无论调用方走 login()/launch() 便捷方法还是
+      // 直接 request("connect.login"/"connect.launch")，当前入口的 URL 来源证明
+      // 都会被附上（若有）；钱包核对签名与可信来源。
+      let effectiveParams = params;
+      if ((method === "connect.login" || method === "connect.launch") && !("publicationProof" in params)) {
+        effectiveParams = withOwnPublicationProof(params);
       }
-    });
+      if (establishing && this.pending.size) throw new TypeError("Cannot establish a connection while requests are pending");
+      if (!establishing && !this.bindingId) throw new KeymasterProtocolError("invalid_request", "Login or launch before making business requests");
+      if ([...this.pending.values()].some(request => ["connect.login", "connect.launch"].includes(request.method))) throw new TypeError("Connection establishment is already pending");
+      // 只有显式建连可以打开窗口。业务仅使用现有传输，失效直接断开。
+      if (establishing) {
+        const abortOpening = () => this.disconnect(abortReason(options.signal!));
+        options.signal?.addEventListener("abort", abortOpening, { once: true });
+        try { await this.connect(); }
+        finally { options.signal?.removeEventListener("abort", abortOpening); }
+      }
+      if (establishing && this.pending.size) throw new TypeError("Cannot establish a connection while requests are pending");
+      if ([...this.pending.values()].some(request => ["connect.login", "connect.launch"].includes(request.method))) throw new TypeError("Connection establishment is already pending");
+      if (options.signal?.aborted) throw abortReason(options.signal);
+
+      const target = this.sessionWindow;
+      if (!target || isWindowClosed(target) || (!establishing && this.stateValue !== "connected")) {
+        const error = new KeymasterTransportError("wallet_closed", "Wallet connection is unavailable; login again");
+        this.disconnect(error);
+        throw error;
+      }
+      const requestId = options.requestId ?? this.environment.randomUUID();
+      if (!requestId || this.pending.has(requestId)) {
+        throw new TypeError("requestId must be non-empty and unique among pending requests");
+      }
+      const timeoutMs = positiveNumber(options.timeoutMs ?? this.options.requestTimeoutMs, "timeoutMs");
+
+      return await new Promise<MethodResult<M>>((resolve, reject) => {
+        const timer = this.environment.setTimeout(() => {
+          this.postCancel(requestId);
+          this.deletePending(requestId);
+          const error = new KeymasterTransportError("request_timeout", `Keymaster request timed out: ${method}`);
+          if (establishing) this.disconnect(error);
+          reject(error);
+        }, timeoutMs);
+        const abortListener = options.signal
+          ? () => {
+              this.postCancel(requestId);
+              this.deletePending(requestId);
+              if (establishing) this.disconnect(abortReason(options.signal!));
+              reject(abortReason(options.signal!));
+            }
+          : undefined;
+        if (abortListener) options.signal!.addEventListener("abort", abortListener, { once: true });
+        this.pending.set(requestId, {
+          method,
+          resolve: (value) => resolve(value as MethodResult<M>),
+          reject,
+          timer,
+          signal: options.signal,
+          abortListener
+        });
+
+        try {
+          target.postMessage({
+            v: PROTOCOL_VERSION,
+            type: "request",
+            ...(!establishing ? { bindingId: this.bindingId } : {}),
+            id: requestId,
+            method,
+            params: effectiveParams
+          }, this.targetOrigin);
+        } catch (cause) {
+          this.deletePending(requestId);
+          const error = new KeymasterTransportError("send_failed", errorMessage(cause, "Unable to send Keymaster request"));
+          this.disconnect(error);
+          reject(error);
+        }
+      });
+    } finally {
+      if (establishing) this.establishmentActive = false;
+    }
   }
 
   /**
@@ -387,41 +367,6 @@ export class KeymasterConnectClient {
    */
   login(params: ConnectLoginParams, options?: KeymasterRequestOptions): Promise<ConnectLoginResult> {
     return this.request("connect.login", withOwnPublicationProof(params), options);
-  }
-
-  /**
-   * Calls `connect.resume` to restore the unlock runtime for a persistent
-   * session.
-   *
-   * 刷新恢复时只把保存的凭据和预期身份载入待恢复上下文，不直接置为已登录；
-   * 钱包验证成功、结果身份一致并取得新 binding 后才开放业务调用。
-   * 无可用凭据时直接拒绝并提示重新登录，不回退到无凭据的重建默认授权。
-   *
-   *
-   * @group Connect
-   */
-  resume(params: ConnectResumeParams = {}, options?: KeymasterRequestOptions): Promise<ConnectResumeResult> {
-    if (options?.signal?.aborted) return Promise.reject(abortReason(options.signal));
-    // 互斥必须在装载凭据或修改状态之前：并发恢复直接拒绝，不触碰本次之外的任何状态。
-    if (this.explicitRecoveryActive) return Promise.reject(new TypeError("Connection recovery is already in progress"));
-    if (this.authorizationId && this.authorizationVerified) {
-      return this.request("connect.resume", params, options);
-    }
-    const stored = loadConnectionRecoveryRecord({
-      recoveryStorage: this.recoveryStorage ?? undefined,
-      targetOrigin: this.targetOrigin,
-      mode: this.mode,
-    });
-    if (stored) {
-      this.authorizationId = stored.authorizationId;
-      this.authorizedIdentity = Object.freeze({ ...stored.networkIdentity });
-      this.authorizationVerified = false;
-    } else if (!this.authorizationId) {
-      return Promise.reject(new KeymasterTransportError("client_closed", "No saved Keymaster recovery record for this origin and mode; login again"));
-    }
-    // 存储为空但内存有未验证凭据时，用内存凭据尝试一次；失败照常清理。
-    void params;
-    return this.continueConnection(options ?? {});
   }
 
   /**
@@ -565,105 +510,9 @@ export class KeymasterConnectClient {
     if (!pending) return false;
     this.postCancel(requestId);
     this.deletePending(requestId);
+    if (pending.method === "connect.login" || pending.method === "connect.launch") this.disconnect(reason);
     pending.reject(reason);
     return true;
-  }
-
-  /**
-   * Tears down the local transport. This does not revoke persistent Connect
-   * sessions; call {@link logout} before closing when revocation is required.
-   *
-   * 只结束运行连接，保留刷新恢复材料：`close()`、页面卸载和运行失效都不删除
-   * 本地恢复记录；`logout` 成功、明确授权失效或用户主动清除才删除。
-   *
-   * @group Transport
-   */
-  close(): void {
-    if (this.bindingId) {
-      try { this.sessionWindow?.postMessage({ v: PROTOCOL_VERSION, type: "tools.register", bindingId: this.bindingId, id: this.environment.randomUUID(), tools: [] }, this.targetOrigin); } catch { /* Best effort; wallet lifecycle also revokes tools. */ }
-    }
-    this.aiTools.clear(new Error("Connect client closed"));
-    // 取消仍可取消的请求；钱包窗口不是客户端的资源，始终由用户自己关闭。
-    for (const id of this.pending.keys()) this.postCancel(id);
-    this.identityValue = null;
-    this.bindingId = null;
-    const error = new KeymasterTransportError("client_closed", "Keymaster client was closed");
-    this.rejectAll(error);
-    this.failReady(error);
-    this.stopClosePolling();
-    if (this.listenerInstalled) {
-      this.environment.removeMessageListener(this.handleMessage);
-      this.listenerInstalled = false;
-    }
-    if (!this.authorizationId) this.sessionWindow = null;
-    this.recoveryId = null;
-    this.explicitRecoveryActive = false;
-    this.recoveryReadyContinue = null;
-    this.finishRecovery(undefined, error);
-    this.setState(this.authorizationId ? "paused" : "disconnected");
-  }
-
-  /** 主动恢复可由 popup 重新打开钱包；后台恢复从不打开窗口或重放业务。 */
-  private continueConnection(options: KeymasterRequestOptions): Promise<ConnectResumeResult> {
-    if (options.signal?.aborted) return Promise.reject(abortReason(options.signal));
-    // 互斥：已在进行的显式恢复未结束前，不接受第二次恢复（经由 resume 或 request 直调）。
-    if (this.explicitRecoveryActive) return Promise.reject(new TypeError("Connection recovery is already in progress"));
-    if (this.pending.size) return Promise.reject(new TypeError("Cannot resume while business requests are pending"));
-    this.installListener();
-    // 新 popup 尚未 ready：钱包监听未安装，立即首发必丢。窗口存在≠就绪，
-    // 以 sessionWindowReady 独立记录；未就绪一律等可信窗口 ready 后再发恢复。
-    let awaitReady = false;
-    if (this.mode === "popup") {
-      if (!this.sessionWindow || isWindowClosed(this.sessionWindow)) {
-        const url = new URL(this.options.popupPath, `${this.targetOrigin}/`);
-        if (url.origin !== this.targetOrigin) return Promise.reject(new TypeError("popupPath must resolve inside targetOrigin"));
-        this.sessionWindow = this.environment.open(url.href, "_blank", "");
-        if (!this.sessionWindow) return Promise.reject(new KeymasterTransportError("popup_blocked", "Keymaster wallet window was blocked"));
-        this.sessionWindowReady = false;
-        awaitReady = true;
-      } else if (!this.sessionWindowReady) {
-        awaitReady = true;
-      }
-    } else {
-      const launcher = this.mode === "iframe" ? this.environment.parent() : this.environment.opener();
-      if (!launcher || isWindowClosed(launcher)) return Promise.reject(new KeymasterTransportError("appview_session_lost", "Wallet launcher unavailable; relaunch from the wallet"));
-      this.sessionWindow = launcher;
-    }
-    // 显式恢复开始：暂停后台心跳；结束（成功/失败/取消/超时）后恢复。
-    // 清理依据凭据是否已验证：未验证凭据失败一律清内存，存储保留供用户重试；已验证授权失败则保留。
-    const wasVerified = this.authorizationVerified;
-    this.explicitRecoveryActive = true;
-    const endExplicitAttempt = (failed: boolean) => {
-      this.explicitRecoveryActive = false;
-      this.recoveryReadyContinue = null;
-      if (failed && !wasVerified && this.authorizationId) {
-        this.authorizationId = null;
-        this.authorizedIdentity = null;
-        this.recoveryId = null;
-      }
-    };
-    this.pause(new KeymasterTransportError("wallet_paused", "Re-establishing the original wallet connection"));
-    this.startClosePolling();
-    return new Promise((resolve, reject) => {
-      const finish = (error?: unknown, result?: ConnectResumeResult) => {
-        this.environment.clearTimeout(timer);
-        options.signal?.removeEventListener("abort", aborted);
-        this.recoveryWaiters.delete(waiter);
-        endExplicitAttempt(!!error);
-        if (error) reject(error); else resolve(result!);
-      };
-      const waiter = { resolve: (result: ConnectResumeResult) => finish(undefined, result), reject: (error: unknown) => finish(error) };
-      const aborted = () => finish(abortReason(options.signal!));
-      const timer = this.environment.setTimeout(() => finish(new KeymasterTransportError("request_timeout", "Timed out restoring wallet connection")), positiveNumber(options.timeoutMs ?? this.options.readyTimeoutMs, "timeoutMs"));
-      this.recoveryWaiters.add(waiter);
-      options.signal?.addEventListener("abort", aborted, { once: true });
-      if (awaitReady) {
-        // 首发推迟到可信窗口 ready；超时/取消/结束由统一 finish 收口。
-        this.recoveryReadyContinue = () => this.sendRecovery();
-      } else {
-        this.sendRecovery();
-      }
-    });
   }
 
   private connectPopup(): Promise<void> {
@@ -672,20 +521,29 @@ export class KeymasterConnectClient {
     const url = new URL(this.options.popupPath, `${this.targetOrigin}/`);
     if (url.origin !== this.targetOrigin) return Promise.reject(new TypeError("popupPath must resolve inside targetOrigin"));
     this.installListener();
-    this.setState("opening");
-    this.sessionWindow = this.environment.open(url.href, "_blank", "");
-    if (!this.sessionWindow) {
-      this.setState("disconnected");
-      return Promise.reject(new KeymasterTransportError("popup_blocked", "Keymaster wallet window was blocked"));
-    }
-    this.sessionWindowReady = false;
-    this.startClosePolling();
-    this.readyPromise = new Promise<void>((resolve, reject) => {
+    // 先建立等待和取消入口，再通知调用方；opening 回调可能同步取消或卸载页面。
+    const ready = new Promise<void>((resolve, reject) => {
       this.readyResolve = resolve;
       this.readyReject = reject;
       this.readyTimer = this.environment.setTimeout(() => this.disconnect(new KeymasterTransportError("ready_timeout", "Timed out waiting for the wallet to initialize or unlock")), this.options.readyTimeoutMs);
     });
-    return this.readyPromise;
+    this.readyPromise = ready;
+    this.setState("opening");
+    if (this.readyPromise !== ready) return ready;
+    try {
+      const target = this.environment.open(url.href, "_blank", "");
+      // open 的浏览器适配器也可能触发同步取消，结束的尝试不能重新安装资源。
+      if (this.readyPromise !== ready) return ready;
+      if (!target) {
+        this.disconnect(new KeymasterTransportError("popup_blocked", "Keymaster wallet window was blocked"));
+      } else {
+        this.sessionWindow = target;
+        this.startClosePolling();
+      }
+    } catch (cause) {
+      this.disconnect(new KeymasterTransportError("send_failed", errorMessage(cause, "Unable to open Keymaster wallet")));
+    }
+    return ready;
   }
 
   private connectAppView(): Promise<void> {
@@ -726,28 +584,16 @@ export class KeymasterConnectClient {
 
     if (this.aiTools.handle(value)) return;
     if (value.type === "ready") {
-      // 可信窗口就绪：独立记录就绪态（存在≠就绪），并触发等待中的显式恢复首发。
-      this.sessionWindowReady = true;
       if (this.mode === "popup" && this.readyPromise) this.finishReady();
-      // 新 popup 的显式恢复首发推迟到可信窗口 ready 后，避免首包丢失。
-      if (this.explicitRecoveryActive && this.recoveryReadyContinue) {
-        const send = this.recoveryReadyContinue;
-        this.recoveryReadyContinue = null;
-        send();
-      }
+      else if (this.bindingId) this.disconnect(new KeymasterTransportError("wallet_closed", "Wallet runtime changed; login again"));
       return;
     }
     if (value.type === "closing") {
-      if (this.authorizationId) this.pause(new KeymasterTransportError("wallet_paused", "Wallet runtime is unavailable"));
-      else this.disconnect(new KeymasterTransportError("wallet_closed", "Keymaster wallet connection is closing"));
+      this.disconnect(new KeymasterTransportError("wallet_closed", "Keymaster wallet connection is closing"));
       return;
     }
     if (value.type === "revoked" && value.authorizationId === this.authorizationId) {
-      const revokedId = this.authorizationId;
-      this.authorizationId = null; this.authorizedIdentity = null; this.authorizationVerified = false; this.recoveryId = null;
-      this.dropRecoveryRecord(revokedId);
       const revokedError = new KeymasterProtocolError("authorization_expired", "Application connection authorization was revoked");
-      this.finishRecovery(undefined, revokedError);
       this.disconnect(revokedError);
       return;
     }
@@ -765,43 +611,6 @@ export class KeymasterConnectClient {
     if (value.type !== "result" || typeof value.id !== "string" || typeof value.ok !== "boolean") return;
 
     const result = event.data as ProtocolResultMessage;
-    if (this.authorizationId && result.id === this.recoveryId) {
-      if (!result.ok) {
-        // connection_expired 只表达运行连接、binding 或世代失效，保留恢复记录；
-        // 只有钱包确认凭据已不存在/已撤销/不再有效时返回 authorization_expired，才清除。
-        // 超时、窗口关闭及身份不匹配均保留记录，不自动重试。
-        const code = result.error?.code;
-        const message = result.error?.message ?? "Failed to restore wallet connection";
-        if (code === "authorization_expired") {
-          const expiredId = this.authorizationId;
-          this.authorizationId = null; this.authorizedIdentity = null; this.authorizationVerified = false; this.recoveryId = null;
-          this.dropRecoveryRecord(expiredId);
-          const expired = new KeymasterProtocolError(code, message);
-          this.finishRecovery(undefined, expired);
-          this.disconnect(expired);
-          return;
-        }
-        const failure = new KeymasterProtocolError((code as ProtocolErrorCode) || "connection_expired", message);
-        this.pause(failure);
-        this.recoveryId = null;
-        this.finishRecovery(undefined, failure);
-        return;
-      }
-      try {
-        const identity = validateNetworkIdentity(value.networkIdentity);
-        const restored = result.result as ConnectResumeResult;
-        if (!this.authorizedIdentity || !sameNetworkIdentity(identity, this.authorizedIdentity) || !sameNetworkIdentity(identity, validateNetworkIdentity(restored.networkIdentity))
-          || restored.authorizationId !== this.authorizationId || typeof value.bindingId !== "string" || !value.bindingId) throw new Error("Recovery must retain the original wallet and authorization");
-        if (this.bindingId !== value.bindingId) this.pause(new KeymasterTransportError("wallet_paused", "Wallet runtime was replaced"));
-        this.identityValue = Object.freeze({ ...identity }); this.bindingId = value.bindingId; this.recoveryId = null;
-        this.authorizationVerified = true;
-        this.setState("connected");
-        // 恢复成功后校验原身份、原授权并更新记录；写入失败不影响已成功的恢复。
-        this.persistRecoveryRecord(restored.authorizationId, identity);
-        this.finishRecovery(restored);
-      } catch (error) { this.pause(error); this.recoveryId = null; this.finishRecovery(undefined, error); }
-      return;
-    }
     const pending = this.pending.get(result.id);
     if (!pending) return;
     this.deletePending(result.id);
@@ -811,31 +620,26 @@ export class KeymasterConnectClient {
         pending.reject(new KeymasterProtocolError("invalid_request", "Malformed Keymaster error result"));
         return;
       }
-      // connection_expired 仅表达运行连接失效，保留恢复记录；authorization_expired
-      // 仅在恢复链路中触发清除，普通业务失败不擅自删除本地凭据。
-      if (result.error.code === "connection_expired" || result.error.code === "authorization_expired") { if (this.authorizationId) this.pause(new KeymasterProtocolError(result.error.code, result.error.message)); else { this.identityValue = null; this.bindingId = null; } }
+      if (result.error.code === "connection_expired" || result.error.code === "authorization_expired") this.disconnect(new KeymasterProtocolError(result.error.code, result.error.message));
+      if (pending.method === "connect.login" || pending.method === "connect.launch") this.disconnect(new KeymasterProtocolError(result.error.code, result.error.message));
       pending.reject(new KeymasterProtocolError(result.error.code, result.error.message));
       return;
     }
     try {
       const identity = validateNetworkIdentity(value.networkIdentity);
-      if (["connect.login", "connect.resume", "connect.launch"].includes(pending.method)) {
+      if (["connect.login", "connect.launch"].includes(pending.method)) {
         const connected = result.result as { networkIdentity: unknown; authorizationId: string };
         if (!sameNetworkIdentity(identity, validateNetworkIdentity(connected.networkIdentity)) || typeof value.bindingId !== "string" || !value.bindingId || typeof connected.authorizationId !== "string" || !connected.authorizationId) throw new Error("Invalid connection identity or binding");
         this.aiTools.clear(new Error("Connection binding replaced; register tools again"));
         this.identityValue = Object.freeze({ ...identity });
-        this.authorizedIdentity = this.identityValue; this.authorizationId = connected.authorizationId; this.authorizationVerified = true; this.recoveryId = null;
+        this.authorizationId = connected.authorizationId;
         this.bindingId = value.bindingId;
-        // login/launch/resume 成功保存新记录；存储写入失败不影响已成功的登录。
-        this.persistRecoveryRecord(connected.authorizationId, identity);
+        this.setState("connected");
       } else if (!this.identityValue || value.bindingId !== this.bindingId || !sameNetworkIdentity(this.identityValue, identity)) {
         throw new Error("Keymaster connection identity mismatch");
       }
       if (pending.method === "connect.logout") {
-        const logoutId = this.authorizationId;
-        this.aiTools.clear(new Error("Logged out")); this.identityValue = null; this.bindingId = null; this.authorizationId = null; this.authorizedIdentity = null; this.authorizationVerified = false; this.recoveryId = null;
-        // logout 成功清除本地恢复记录；用户主动清除同样只删本地材料，不宣称撤销。
-        this.dropRecoveryRecord(logoutId);
+        this.disconnect(new KeymasterTransportError("client_closed", "Logged out"));
       }
       pending.resolve(result.result);
     } catch (error) {
@@ -850,6 +654,7 @@ export class KeymasterConnectClient {
   private installListener(): void {
     if (this.listenerInstalled) return;
     this.environment.addMessageListener(this.handleMessage);
+    this.environment.addPageHideListener?.(this.handlePageHide);
     this.listenerInstalled = true;
   }
 
@@ -873,84 +678,37 @@ export class KeymasterConnectClient {
     this.readyReject = null;
   }
 
+  /** 仅清理本地运行态，页签关闭不发送握手或等待回复。 */
+  private readonly handlePageHide = (): void => {
+    if (this.sessionWindow && this.bindingId) {
+      try { this.sessionWindow.postMessage({ v: PROTOCOL_VERSION, type: "client_unloaded", bindingId: this.bindingId }, this.targetOrigin); } catch { /* Unload notification is best effort. */ }
+    }
+    this.disconnect(new KeymasterTransportError("client_closed", "Application page unloaded"));
+  };
+
   private disconnect(reason: unknown): void {
     this.aiTools.clear(reason);
-    for (const id of this.pending.keys()) this.postCancel(id);
     this.identityValue = null;
     this.bindingId = null;
     this.rejectAll(reason);
     this.failReady(reason);
     this.stopClosePolling();
     this.sessionWindow = null;
-    this.sessionWindowReady = false;
-    this.explicitRecoveryActive = false;
-    this.recoveryReadyContinue = null;
+    this.authorizationId = null;
+    if (this.listenerInstalled) {
+      this.environment.removeMessageListener(this.handleMessage);
+      this.environment.removePageHideListener?.(this.handlePageHide);
+      this.listenerInstalled = false;
+    }
     this.setState("disconnected");
-  }
-
-  /** 暂停仅撤销瞬时绑定和旧请求，持久授权引用及原身份留作恢复校验。 */
-  private pause(reason: unknown): void {
-    this.aiTools.clear(reason);
-    this.identityValue = null; this.bindingId = null;
-    this.rejectAll(reason); this.failReady(reason);
-    this.setState("paused");
-  }
-
-  /** 保存最近成功连接的恢复记录；写入失败只记录原因，不影响已成功的登录。 */
-  private persistRecoveryRecord(authorizationId: string, identity: Readonly<NetworkIdentity>): void {
-    if (!this.recoveryStorage) {
-      this.recoverySaveErrorValue = "Recovery storage is unavailable; refresh will require re-login";
-      return;
-    }
-    try {
-      saveConnectionRecoveryRecord(this.recoveryStorage, {
-        version: 1,
-        targetOrigin: this.targetOrigin,
-        mode: this.mode,
-        authorizationId,
-        networkIdentity: { ...identity },
-      });
-      this.recoverySaveErrorValue = null;
-    } catch (error) {
-      this.recoverySaveErrorValue = errorMessage(error, "Failed to persist recovery record; refresh will require re-login");
-    }
-  }
-
-  /** 按目标与授权核对后清除本地恢复记录；旧实例迟到结果不得删除新记录。 */
-  private dropRecoveryRecord(authorizationId?: string | null): void {
-    try {
-      clearConnectionRecovery({
-        recoveryStorage: this.recoveryStorage ?? undefined,
-        targetOrigin: this.targetOrigin,
-        ...(authorizationId ? { authorizationId } : {}),
-      });
-    } catch {
-      // 清除失败保留原记录，由下次明确失效再处理。
-    }
-  }
-
-  private sendRecovery(): void {
-    if (!this.authorizationId || !this.sessionWindow || isWindowClosed(this.sessionWindow)) return;
-    // 显式建立连接期间不发恢复心跳：旧授权的失效结果不能打断正在等待审批的
-    // login/resume/launch；建立完成后心跳以新授权恢复。
-    if (this.stateValue === "opening") return;
-    if ([...this.pending.values()].some(request => ["connect.login", "connect.resume", "connect.launch"].includes(request.method))) return;
-    this.recoveryId ??= this.environment.randomUUID();
-    try { this.sessionWindow.postMessage({ v: PROTOCOL_VERSION, type: "reconnect", id: this.recoveryId, authorizationId: this.authorizationId, ...(this.bindingId ? { bindingId: this.bindingId } : {}) }, this.targetOrigin); }
-    catch (error) { this.pause(error); }
-  }
-
-  private finishRecovery(result?: ConnectResumeResult, error?: unknown): void {
-    for (const waiter of [...this.recoveryWaiters]) { if (error) waiter.reject(error); else if (result) waiter.resolve(result); }
   }
 
   private startClosePolling(): void {
     this.stopClosePolling();
     this.closePoller = this.environment.setInterval(() => {
       if (this.sessionWindow && isWindowClosed(this.sessionWindow)) {
-        if (this.authorizationId) { if (this.stateValue !== "paused") this.pause(new KeymasterTransportError("wallet_paused", "Wallet window is closed")); }
-        else this.disconnect(new KeymasterTransportError("wallet_closed", "Keymaster parent wallet was closed"));
-      } else if (!this.explicitRecoveryActive) this.sendRecovery();
+        this.disconnect(new KeymasterTransportError("wallet_closed", "Wallet window is closed"));
+      }
     }, this.options.closePollMs);
   }
 
@@ -1015,6 +773,8 @@ export function createBrowserEnvironment(): KeymasterBrowserEnvironment {
     clearTimeout: (timer) => window.clearTimeout(timer),
     setInterval: (handler, intervalMs) => window.setInterval(handler, intervalMs),
     clearInterval: (timer) => window.clearInterval(timer),
+    addPageHideListener: listener => window.addEventListener("pagehide", listener),
+    removePageHideListener: listener => window.removeEventListener("pagehide", listener),
     randomUUID: () => window.crypto.randomUUID()
   };
 }

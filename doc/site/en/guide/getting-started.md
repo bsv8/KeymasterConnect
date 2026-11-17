@@ -26,15 +26,10 @@ await keymaster.identityGet({
 });
 ```
 
-## Resume and close
+## Connection lifecycle
+
+After a disconnect or page refresh, apps that open the wallet must log in again. Wallet-launched apps must be reopened from the wallet. The SDK stores no recovery credentials, reconnects nothing automatically, and never replays business requests. Close the tab directly; no closing handshake or reply is required. Long-term application permissions are managed separately by the wallet. Closing a tab cannot undo signing or broadcasting.
 
 ```ts
-await keymaster.resume(); // no wallet specified; returns current wallet public key, network and claims
-await keymaster.logout(); // revokes the current-origin connection
-keymaster.close();        // closes transport only; not a logout
+await keymaster.logout();
 ```
-
-MSFile access submits the issuer-signed proof in `login` or `resume({ appIdentity })`.
-A locked wallet may still ask for unlock or confirmation. The app never stores internal connection bindings; after a new window is opened, resume or log in again and re-check the returned identity.
-
-This is a hard cutover: the `networkIdentity` initializer, business `walletPublicKeyHex`, the `assetId` network selector, and the resume/logout public-key parameters are removed; the old protocol is incompatible. See [Release notes](/en/release-notes).

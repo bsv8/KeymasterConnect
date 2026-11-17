@@ -26,15 +26,10 @@ await keymaster.identityGet({
 });
 ```
 
-## 恢复和关闭
+## 连接生命周期
+
+连接中断或页面刷新后，App 主动连接须重新登录；钱包启动的 App 须从钱包重新打开。SDK 不保存授权恢复记录、不自动重连、不重放旧业务请求。用户直接关闭页签，无需发送关闭通知或等待回复。长期应用操作许可由钱包独立保存，关闭页签不撤回已签名或广播的操作。
 
 ```ts
-await keymaster.resume(); // 不指定钱包，返回当前钱包公钥、网络和 claims
-await keymaster.logout(); // 撤销当前来源连接
-keymaster.close();        // 仅关闭传输，不代替注销
+await keymaster.logout();
 ```
-
-MSFile 接入可在 `login` 或 `resume({ appIdentity })` 提交发行人签名 proof。
-钱包锁定时仍可能要求解锁或确认。App 不保存内部连接绑定；新窗口建立后显式恢复，并重新判断返回身份。
-
-这是硬切换：删除初始化 `networkIdentity`、业务 `walletPublicKeyHex`、用于选择网络的 `assetId`，以及 resume/logout 的公钥参数。旧协议不兼容。详情见[发布说明](/zh/release-notes)。

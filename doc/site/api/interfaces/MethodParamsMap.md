@@ -16,7 +16,6 @@
 | [`payment.pay`](#paymentpay) | [`PaymentPayParams`](PaymentPayParams.md) | Yes | — |
 | [`payment.status`](#paymentstatus) | [`PaymentStatusParams`](PaymentStatusParams.md) | Yes | — |
 | [`connect.login`](#connectlogin) | [`ConnectLoginParams`](ConnectLoginParams.md) | Yes | — |
-| [`connect.resume`](#connectresume) | [`ConnectResumeParams`](ConnectResumeParams.md) | Yes | — |
 | [`connect.logout`](#connectlogout) | [`ConnectLogoutParams`](ConnectLogoutParams.md) | Yes | — |
 | [`connect.launch`](#connectlaunch) | [`ConnectLaunchParams`](ConnectLaunchParams.md) | Yes | — |
 | [`channel.publish`](#channelpublish) | [`ChannelPublishParams`](ChannelPublishParams.md) | Yes | — |
@@ -66,12 +65,6 @@
 ### connect.login
 
 > **connect.login**: [`ConnectLoginParams`](ConnectLoginParams.md)
-
-***
-
-### connect.resume
-
-> **connect.resume**: [`ConnectResumeParams`](ConnectResumeParams.md)
 
 ***
 

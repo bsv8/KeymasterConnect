@@ -38,7 +38,7 @@ const session = await keymaster.launch({ launchToken });
 
 ## Connect
 
-Create, restore, revoke, or launch a persistent Connect session.
+建立、撤销或启动 Connect 连接。
 
 ### login()
 
@@ -59,33 +59,6 @@ Calls `connect.login` to create a persistent Connect session.
 #### Returns
 
 `Promise`\<[`ConnectLoginResult`](../interfaces/ConnectLoginResult.md)\>
-
-***
-
-### resume()
-
-> **resume**(`params?`, `options?`): `Promise`\<[`ConnectResumeResult`](../interfaces/ConnectResumeResult.md)\>
-
-Calls `connect.resume` to restore the unlock runtime for a persistent
-session.
-
-刷新恢复时只把保存的凭据和预期身份载入待恢复上下文，不直接置为已登录；
-钱包验证成功、结果身份一致并取得新 binding 后才开放业务调用。
-无可用凭据时直接拒绝并提示重新登录，不回退到无凭据的重建默认授权。
-
-#### Parameters
-
-##### params?
-
-[`ConnectResumeParams`](../interfaces/ConnectResumeParams.md) = `{}`
-
-##### options?
-
-[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
-
-#### Returns
-
-`Promise`\<[`ConnectResumeResult`](../interfaces/ConnectResumeResult.md)\>
 
 ***
 
@@ -294,11 +267,6 @@ Current browser transport state.
 
 Establishes the browser transport.
 
-只建立传输，不恢复授权：iframe / appView 绑定真实 parent / opener；
-popup 打开完整钱包等待 ready。刷新后的授权恢复请使用 `resume()`，
-它会先装载本地恢复记录再复用 `continueConnection()`；`connect()` 本身
-不读取恢复记录、不自动恢复。
-
 #### Returns
 
 `Promise`\<`void`\>
@@ -316,7 +284,7 @@ inference.
 
 ##### M
 
-`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"payment.pay"` \| `"payment.status"` \| `"connect.login"` \| `"connect.resume"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
+`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"payment.pay"` \| `"payment.status"` \| `"connect.login"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
 
 #### Parameters
 
@@ -359,22 +327,6 @@ entered execution; cancellation is therefore best-effort remotely.
 
 `boolean`
 
-***
-
-### close()
-
-> **close**(): `void`
-
-Tears down the local transport. This does not revoke persistent Connect
-sessions; call [logout](#logout) before closing when revocation is required.
-
-只结束运行连接，保留刷新恢复材料：`close()`、页面卸载和运行失效都不删除
-本地恢复记录；`logout` 成功、明确授权失效或用户主动清除才删除。
-
-#### Returns
-
-`void`
-
 ## Accessors
 
 ### networkIdentity
@@ -388,34 +340,6 @@ Identity returned by the authenticated wallet, or null before establishment.
 ##### Returns
 
 `Readonly`\<[`NetworkIdentity`](../interfaces/NetworkIdentity.md)\> \| `null`
-
-***
-
-### recoverySaveError
-
-#### Get Signature
-
-> **get** **recoverySaveError**(): `string` \| `null`
-
-最近一次持久化失败的原因；成功后清零。登录成功不受写入失败影响。
-
-##### Returns
-
-`string` \| `null`
-
-***
-
-### recoveryStorageAvailable
-
-#### Get Signature
-
-> **get** **recoveryStorageAvailable**(): `boolean`
-
-刷新恢复存储是否可用；不可用时仍可登录，但刷新后需重新登录。
-
-##### Returns
-
-`boolean`
 
 ## Constructors
 

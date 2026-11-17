@@ -16,6 +16,6 @@ The wallet finishes creation, import or unlock first, then publishes ready; read
 
 Each client opens its own wallet document by default, so a reused window from another app can never inherit the wrong opener. The SDK only recognizes the window it actually opened; it cannot find a wallet tab the user opened by hand. The open path comes from the `popupPath` option (default `/`) and must stay inside `targetOrigin`; window names are never shared across apps.
 
-`close()` rejects local pending tasks and cancels the original application best-effort, but never calls `window.close()` and never runs `connect.logout` implicitly. Errors, timeouts, demo unmounts or address switches never close the wallet either. Call `logout()` explicitly to revoke the current connection; closing the wallet is the user's decision.
+After a disconnect or page refresh, apps that open the wallet must log in again. Wallet-launched apps must be reopened from the wallet. The SDK stores no recovery credentials, reconnects nothing automatically, and never replays business requests. Close the tab directly; no closing handshake or reply is required. Long-term application permissions are managed separately by the wallet. Closing a tab cannot undo signing or broadcasting.
 
 Candidate-package acceptance never equals public npm release; switch exact dependencies only after the matching version is publicly released.

@@ -2,6 +2,6 @@
 
 # Type Alias: KeymasterConnectState
 
-> **KeymasterConnectState** = `"idle"` \| `"opening"` \| `"connected"` \| `"paused"` \| `"disconnected"`
+> **KeymasterConnectState** = `"idle"` \| `"opening"` \| `"connected"` \| `"disconnected"`
 
 Observable lifecycle of the browser transport.

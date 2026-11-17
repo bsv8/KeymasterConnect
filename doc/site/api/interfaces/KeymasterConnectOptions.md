@@ -17,7 +17,6 @@ Configuration for [KeymasterConnectClient](../classes/KeymasterConnectClient.md)
 | [`onEvent?`](#onevent) | (`event`) => `void` | No | 接收当前精确订阅频道上的已验签 Channel 事件。 |
 | [`onStateChange?`](#onstatechange) | (`state`) => `void` | No | Receives transport lifecycle changes. |
 | [`environment?`](#environment) | [`KeymasterBrowserEnvironment`](KeymasterBrowserEnvironment.md) | No | Optional browser adapter, normally only supplied by tests. |
-| [`recoveryStorage?`](#recoverystorage) | [`ConnectionRecoveryStorage`](ConnectionRecoveryStorage.md) | No | 可替换的刷新恢复存储；默认访问 Demo origin 下的 sessionStorage，不降级到 localStorage。 |
 
 ## Properties
 
@@ -110,11 +109,3 @@ Receives transport lifecycle changes.
 > `optional` **environment?**: [`KeymasterBrowserEnvironment`](KeymasterBrowserEnvironment.md)
 
 Optional browser adapter, normally only supplied by tests.
-
-***
-
-### recoveryStorage?
-
-> `optional` **recoveryStorage?**: [`ConnectionRecoveryStorage`](ConnectionRecoveryStorage.md)
-
-可替换的刷新恢复存储；默认访问 Demo origin 下的 sessionStorage，不降级到 localStorage。

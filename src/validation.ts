@@ -8,7 +8,7 @@ import {
   type MsFileBlockReadParams, type BinaryField, type ProtocolErrorCode, type IdentityGetParams,
   type IntentSignParams, type CipherEncryptParams, type CipherDecryptParams, type P2pkhTransferAssetId,
   type PaymentPayParams, type PaymentStatusParams,
-  type ConnectLoginParams, type ConnectResumeParams, type ConnectLogoutParams, type ConnectLaunchParams,
+  type ConnectLoginParams, type ConnectLogoutParams, type ConnectLaunchParams,
   type ProtocolMethod, type ProtocolRequestMessage,
 } from "./protocol.js";
 import { validatePublicationProof } from "./internal/publicationProof.js";
@@ -163,20 +163,6 @@ function validateConnectLoginParams(raw: unknown): ConnectLoginParams {
         }
     }
     return publicationProof === undefined ? { text, claims } : { text, claims, publicationProof };
-}
-
-/**
- * 校验 connect.resume params。
- *
- * 设计缘由：resume 只接 sessionId；service 在执行路径上按 sessionId 查
- * session 记录 + 校验 origin 匹配 + 校验 owner 仍 ready。
- */
-function validateConnectResumeParams(raw: unknown): ConnectResumeParams {
-    const obj = expectObject(raw, "connect.resume params");
-    for (const field of Object.keys(obj))
-        throw new ProtocolValidationError("invalid_request", "connect.resume contains an unsupported field");
-    void obj;
-    return {};
 }
 
 /**
@@ -559,7 +545,6 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
     let normalized: P.MethodParams<ProtocolMethod>;
     switch (method) {
         case "connect.login": normalized = validateConnectLoginParams(params); break;
-        case "connect.resume": normalized = validateConnectResumeParams(params); break;
         case "connect.logout": normalized = validateConnectLogoutParams(params); break;
         case "connect.launch": normalized = validateConnectLaunchParams(params); break;
         case "identity.get": normalized = validateIdentityGetParams(params); break;

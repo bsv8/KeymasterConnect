@@ -472,20 +472,6 @@ export interface ConnectLoginResult {
     resolvedAt: number;
 }
 
-export interface ConnectResumeParams extends Record<string, never> {
-}
-
-export interface ConnectResumeResult {
-    authorizationId: string;
-    networkIdentity: NetworkIdentity;
-    resolvedClaims: Record<string, ResolvedClaimValue>;
-    /**
-     * 解析时间——本次 resume 时间戳，**不**是 connect.login 时的快照时间。
-     * 给 caller 用来做"是否要重新登录"的客户端超时策略。
-     */
-    resolvedAt: number;
-}
-
 export interface ConnectLogoutParams extends Record<string, never> {
 }
 
@@ -520,7 +506,6 @@ export const PROTOCOL_METHODS = [
     "payment.pay",
     "payment.status",
     "connect.login",
-    "connect.resume",
     "connect.logout",
     "connect.launch",
     // Channel 是唯一的公开频道 API，见 docs/SatSubscription与Channel.md。
@@ -547,7 +532,6 @@ export interface MethodParamsMap {
     "payment.pay": PaymentPayParams;
     "payment.status": PaymentStatusParams;
     "connect.login": ConnectLoginParams;
-    "connect.resume": ConnectResumeParams;
     "connect.logout": ConnectLogoutParams;
     "connect.launch": ConnectLaunchParams;
     "channel.publish": ChannelPublishParams;
@@ -564,7 +548,6 @@ export interface MethodResultMap {
     "payment.pay": PaymentPayResult;
     "payment.status": PaymentStatusResult;
     "connect.login": ConnectLoginResult;
-    "connect.resume": ConnectResumeResult;
     "connect.logout": ConnectLogoutResult;
     "connect.launch": ConnectLaunchResult;
     "channel.publish": ChannelPublishResult;
@@ -579,14 +562,6 @@ export type MethodResult<M extends ProtocolMethod = ProtocolMethod> = MethodResu
 export type ProtocolEventPayload =
   { v: typeof PROTOCOL_VERSION; type: "event"; event: "channel.message_received"; data: ChannelMessageReceivedEventData };
 export type ProtocolEventMessage = ProtocolEventPayload & { networkIdentity: NetworkIdentity; bindingId: string };
-/** 暂停恢复控制，不携带钱包选择参数，也不是业务请求重放。 */
-export interface ProtocolReconnectMessage {
-  v: typeof PROTOCOL_VERSION;
-  type: "reconnect";
-  id: string;
-  authorizationId: string;
-  bindingId?: string;
-}
 export interface ProtocolRequestMessage<M extends ProtocolMethod = ProtocolMethod> {
   v: typeof PROTOCOL_VERSION; type: "request"; id: string; method: M; params: MethodParams<M>; bindingId?: string;
 }

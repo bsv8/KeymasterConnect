@@ -13,7 +13,6 @@
 | [`payment.pay`](#paymentpay) | [`PaymentPayResult`](PaymentPayResult.md) | Yes | — |
 | [`payment.status`](#paymentstatus) | [`PaymentPayResult`](PaymentPayResult.md) | Yes | — |
 | [`connect.login`](#connectlogin) | [`ConnectLoginResult`](ConnectLoginResult.md) | Yes | — |
-| [`connect.resume`](#connectresume) | [`ConnectResumeResult`](ConnectResumeResult.md) | Yes | — |
 | [`connect.logout`](#connectlogout) | [`ConnectLogoutResult`](ConnectLogoutResult.md) | Yes | — |
 | [`connect.launch`](#connectlaunch) | [`ConnectLaunchResult`](ConnectLaunchResult.md) | Yes | — |
 | [`channel.publish`](#channelpublish) | [`ChannelPublishResult`](ChannelPublishResult.md) | Yes | — |
@@ -63,12 +62,6 @@
 ### connect.login
 
 > **connect.login**: [`ConnectLoginResult`](ConnectLoginResult.md)
-
-***
-
-### connect.resume
-
-> **connect.resume**: [`ConnectResumeResult`](ConnectResumeResult.md)
 
 ***
 

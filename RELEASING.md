@@ -1,6 +1,6 @@
 # 发布 keymaster-connect
 
-仓库根目录发布 `keymaster-connect`，当前版本 `0.1.6`，wire 保持 v1。包含完整 `publicationProof` 建连契约、连接恢复及可选加密存储。`doc/` 为私有文档子项目，不发布；许可证沿用 LICENSE。
+仓库根目录发布 `keymaster-connect`，当前版本 `0.1.8`，wire 保持 v1。当前源码包含完整 `publicationProof` 建连契约与显式登录／启动，不提供连接恢复或 App 存储。源码变更须发布新包才影响消费方。`doc/` 为私有文档子项目，不发布；许可证沿用 LICENSE。
 
 ## 发布前验证
 
@@ -24,7 +24,7 @@ npm publish --access public --tag latest --auth-type=web --registry=https://regi
 ## 发布后升级消费方
 
 ```sh
-npm view keymaster-connect@0.1.6 name version dist.integrity --registry=https://registry.npmjs.org/
+npm view keymaster-connect@0.1.8 name version dist.integrity --registry=https://registry.npmjs.org/
 ```
 
-确认注册表已存在正确版本后，钱包 contracts/plugin-protocol 和 Demo 才精确升级到 `0.1.6`，更新锁文件并复跑独立构建及针对性 E2E；不提前依赖不存在的 npm 版本。钱包按实际安装的官方 SDK 方法表公开方法，旧 SDK 不会开放候选加密方法。
+确认注册表已存在正确版本后，钱包 contracts/plugin-protocol 和 Demo 才精确升级到 `0.1.8`，更新锁文件并复跑独立构建及针对性 E2E；不提前依赖不存在的 npm 版本。钱包按实际安装的官方 SDK 方法表公开方法，旧 SDK 不会开放候选加密方法。

@@ -2,5 +2,4 @@
 export * from "./protocol.js";
 export * from "./binary.js";
 export * from "./client.js";
-export * from "./recovery.js";
 export * from "./tools.js";

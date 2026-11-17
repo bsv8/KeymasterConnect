@@ -94,30 +94,6 @@
         "link": "/api/functions/isValidMsFileSourceId.md"
       },
       {
-        "text": "resolveRecoveryStorage",
-        "link": "/api/functions/resolveRecoveryStorage.md"
-      },
-      {
-        "text": "isRecoveryStorageAvailable",
-        "link": "/api/functions/isRecoveryStorageAvailable.md"
-      },
-      {
-        "text": "readConnectionRecovery",
-        "link": "/api/functions/readConnectionRecovery.md"
-      },
-      {
-        "text": "loadConnectionRecoveryRecord",
-        "link": "/api/functions/loadConnectionRecoveryRecord.md"
-      },
-      {
-        "text": "saveConnectionRecoveryRecord",
-        "link": "/api/functions/saveConnectionRecoveryRecord.md"
-      },
-      {
-        "text": "clearConnectionRecovery",
-        "link": "/api/functions/clearConnectionRecovery.md"
-      },
-      {
         "text": "interpretLockingScript",
         "link": "/api/functions/interpretLockingScript.md"
       },
@@ -132,10 +108,6 @@
       {
         "text": "isEstablishing",
         "link": "/api/functions/isEstablishing.md"
-      },
-      {
-        "text": "parseReconnectMessage",
-        "link": "/api/functions/parseReconnectMessage.md"
       },
       {
         "text": "assertToolJson",
@@ -360,14 +332,6 @@
         "link": "/api/interfaces/ConnectLoginResult.md"
       },
       {
-        "text": "ConnectResumeParams",
-        "link": "/api/interfaces/ConnectResumeParams.md"
-      },
-      {
-        "text": "ConnectResumeResult",
-        "link": "/api/interfaces/ConnectResumeResult.md"
-      },
-      {
         "text": "ConnectLogoutParams",
         "link": "/api/interfaces/ConnectLogoutParams.md"
       },
@@ -392,32 +356,8 @@
         "link": "/api/interfaces/MethodResultMap.md"
       },
       {
-        "text": "ProtocolReconnectMessage",
-        "link": "/api/interfaces/ProtocolReconnectMessage.md"
-      },
-      {
         "text": "ProtocolRequestMessage",
         "link": "/api/interfaces/ProtocolRequestMessage.md"
-      },
-      {
-        "text": "ConnectionRecoveryRecord",
-        "link": "/api/interfaces/ConnectionRecoveryRecord.md"
-      },
-      {
-        "text": "ConnectionRecoverySummary",
-        "link": "/api/interfaces/ConnectionRecoverySummary.md"
-      },
-      {
-        "text": "ConnectionRecoveryStorage",
-        "link": "/api/interfaces/ConnectionRecoveryStorage.md"
-      },
-      {
-        "text": "ReadRecoveryInit",
-        "link": "/api/interfaces/ReadRecoveryInit.md"
-      },
-      {
-        "text": "ClearRecoveryInit",
-        "link": "/api/interfaces/ClearRecoveryInit.md"
       },
       {
         "text": "PaymentScriptP2pkh",
@@ -654,10 +594,6 @@
       {
         "text": "PROTOCOL_METHODS",
         "link": "/api/variables/PROTOCOL_METHODS.md"
-      },
-      {
-        "text": "RECOVERY_STORAGE_KEY",
-        "link": "/api/variables/RECOVERY_STORAGE_KEY.md"
       },
       {
         "text": "AI_TOOLS_MAX_JSON_CHARS",

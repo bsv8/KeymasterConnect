@@ -161,3 +161,37 @@ Injectable browser primitives used by tests and embedded runtimes.
 #### Returns
 
 `string`
+
+***
+
+### addPageHideListener()?
+
+> `optional` **addPageHideListener**(`listener`): `void`
+
+页面离开时清理本地资源，不等待远端。
+
+#### Parameters
+
+##### listener
+
+() => `void`
+
+#### Returns
+
+`void`
+
+***
+
+### removePageHideListener()?
+
+> `optional` **removePageHideListener**(`listener`): `void`
+
+#### Parameters
+
+##### listener
+
+() => `void`
+
+#### Returns
+
+`void`

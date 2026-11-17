@@ -5,13 +5,12 @@ pageClass: capability-map-page
 # Capability index
 
 All methods are provided by [`KeymasterConnectClient`](/api/classes/KeymasterConnectClient).
-First-time connections need no prior public key or network; `login / resume / launch` return `networkIdentity`.
+First-time connections need no prior public key or network; `login / launch` return `networkIdentity`.
 All business calls use the current connection binding, carry no wallet public key or network selector, and cannot bypass business confirmation or verification.
 
 | Method | Purpose |
 | --- | --- |
 | `connect.login` | Establish a connection after the user confirms the wallet identity |
-| `connect.resume` | Resume the current wallet connection and return the live identity; rebuilds a default context on empty cache |
 | `connect.logout` | Revoke the current origin's local connection, subscriptions and runtime authorization |
 | `connect.launch` | Establish a session with an appView one-time token |
 | `identity.get` | Return an identity assertion with expiry, audience and signature |
@@ -44,8 +43,6 @@ Exact Params, Results, constants and per-field explanations in Chinese follow th
 `channel.message_received` pushes the verified channel, publisher public key, message id and JSON content.
 A successful publish only means Keymaster accepted the local operation, not that any remote party received it.
 
-## Identity requirements
+## Connection lifecycle
 
-MSFile require a verified app identity plus the matching requirement. After a local cache reset, re-verify the existing proof in
-`resume({ appIdentity })`, see [Sessions](/en/concepts/sessions). Apps cannot specify
-suppliers, buckets, physical paths, credentials, private keys or payment amounts.
+After a disconnect or page refresh, apps that open the wallet must log in again. Wallet-launched apps must be reopened from the wallet. The SDK stores no recovery credentials, reconnects nothing automatically, and never replays business requests. Close the tab directly; no closing handshake or reply is required. Long-term application permissions are managed separately by the wallet. Closing a tab cannot undo signing or broadcasting.
