@@ -8,7 +8,7 @@
 | :--- | :--- | :---: | :--- |
 | [`text`](#text) | `string` | Yes | 人类可读确认文案。 |
 | [`claims?`](#claims) | `string`[] | No | 请求索要的 claim 名列表（与 `identity.get` 同语义）。 |
-| [`publicationProof?`](#publicationproof) | [`PublicationProof`](PublicationProof.md) | No | App 入口的 URL 来源证明（SDK 从当前入口 HTML 头读取并提交）。 |
+| [`publicationProof?`](#publicationproof) | `string` | No | App 入口的发布来源证明记录字符串（`base64url(规范JSON).签名hex`）。 |
 
 ## Properties
 
@@ -31,8 +31,9 @@
 
 ### publicationProof?
 
-> `optional` **publicationProof?**: [`PublicationProof`](PublicationProof.md)
+> `optional` **publicationProof?**: `string`
 
-App 入口的 URL 来源证明（SDK 从当前入口 HTML 头读取并提交）。
-钱包验签并核对证明 origin 与可信 event.origin 是否一致；应用不能自报来源。
+App 入口的发布来源证明记录字符串（`base64url(规范JSON).签名hex`）。
+SDK 从当前入口 HTML 头读取并整体提交，不解码、不校验内容；
+钱包解码、验签并核对证明 origin 与可信 event.origin，应用不能自报来源。
 本地 Files 部署不依赖该字段（以 daemon 可信部署登记为准）。

@@ -180,10 +180,6 @@
         "link": "/api/interfaces/KeymasterConnectOptions.md"
       },
       {
-        "text": "PublicationProof",
-        "link": "/api/interfaces/PublicationProof.md"
-      },
-      {
         "text": "NetworkIdentity",
         "link": "/api/interfaces/NetworkIdentity.md"
       },

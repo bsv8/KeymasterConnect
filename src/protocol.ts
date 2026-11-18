@@ -1,6 +1,5 @@
 /** Connect v1 公开契约。独立于钱包内部执行 DTO、能力框架和持久化。 */
 export type { AiToolSchema, AiToolDefinition, AiToolsRegistered, AiToolMessage } from "./tools.js";
-export type { PublicationProof } from "./internal/publicationProof.js";
 
 /** 身份网络在创建/导入时确定；公钥相同也不能跨网复用业务身份。 */
 export type BsvNetwork = "main" | "test";
@@ -455,11 +454,12 @@ export interface ConnectLoginParams {
      */
     claims?: string[];
     /**
-     * App 入口的 URL 来源证明（SDK 从当前入口 HTML 头读取并提交）。
-     * 钱包验签并核对证明 origin 与可信 event.origin 是否一致；应用不能自报来源。
+     * App 入口的发布来源证明记录字符串（`base64url(规范JSON).签名hex`）。
+     * SDK 从当前入口 HTML 头读取并整体提交，不解码、不校验内容；
+     * 钱包解码、验签并核对证明 origin 与可信 event.origin，应用不能自报来源。
      * 本地 Files 部署不依赖该字段（以 daemon 可信部署登记为准）。
      */
-    publicationProof?: import("./internal/publicationProof.js").PublicationProof;
+    publicationProof?: string;
 }
 
 export interface ConnectLoginResult {
@@ -484,10 +484,10 @@ export interface ConnectLaunchParams {
     /** 由 launcher 写入 client app 启动 URL 的 launchToken。一次性消费。 */
     launchToken: string;
     /**
-     * App 入口的 URL 来源证明（可选；钱包发起的目录启动一般不需要客户端提交，
+     * App 入口的发布来源证明记录字符串（可选；钱包发起的目录启动一般不需要客户端提交，
      * 钱包从所选入口自行读取；应用提交时钱包核对一致性，不能自报来源）。
      */
-    publicationProof?: import("./internal/publicationProof.js").PublicationProof;
+    publicationProof?: string;
 }
 
 export interface ConnectLaunchResult {

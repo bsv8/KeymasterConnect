@@ -1,5 +1,5 @@
 import { AiToolClient } from "./toolClient.js";
-import { readOwnPublicationProof } from "./internal/publicationProof.js";
+import { readOwnPublicationRecord } from "./internal/publicationProof.js";
 import type { AiTool, AiToolsRegistered } from "./tools.js";
 import {
   PROTOCOL_VERSION, PROTOCOL_METHODS,
@@ -281,11 +281,11 @@ export class KeymasterConnectClient {
     if (establishing) this.establishmentActive = true;
     try {
       // 建连证明在传输层统一附带：无论调用方走 login()/launch() 便捷方法还是
-      // 直接 request("connect.login"/"connect.launch")，当前入口的 URL 来源证明
-      // 都会被附上（若有）；钱包核对签名与可信来源。
+      // 直接 request("connect.login"/"connect.launch")，当前入口的发布记录
+      // 字符串都会被整体附上（若有）；解码、验签与来源核对全部归钱包。
       let effectiveParams = params;
-      if ((method === "connect.login" || method === "connect.launch") && !("publicationProof" in params)) {
-        effectiveParams = withOwnPublicationProof(params);
+      if ((method === "connect.login" || method === "connect.launch") && (params as Record<string, unknown>).publicationProof === undefined) {
+        effectiveParams = withOwnPublicationRecord(params);
       }
       if (establishing && this.pending.size) throw new TypeError("Cannot establish a connection while requests are pending");
       if (!establishing && !this.bindingId) throw new KeymasterProtocolError("invalid_request", "Login or launch before making business requests");
@@ -366,7 +366,7 @@ export class KeymasterConnectClient {
    * @group Connect
    */
   login(params: ConnectLoginParams, options?: KeymasterRequestOptions): Promise<ConnectLoginResult> {
-    return this.request("connect.login", withOwnPublicationProof(params), options);
+    return this.request("connect.login", params, options);
   }
 
   /**
@@ -386,7 +386,7 @@ export class KeymasterConnectClient {
    * @group Connect
    */
   launch(params: ConnectLaunchParams, options?: KeymasterRequestOptions): Promise<ConnectLaunchResult> {
-    return this.request("connect.launch", withOwnPublicationProof(params), options);
+    return this.request("connect.launch", params, options);
   }
 
   /**
@@ -808,9 +808,13 @@ function errorMessage(value: unknown, fallback: string): string {
   return value instanceof Error && value.message ? value.message : fallback;
 }
 
-/** 主动建连时附带当前入口的 URL 来源证明（若有）；钱包仍核对实际来源。 */
-function withOwnPublicationProof<P extends object>(params: P): P {
-  if ("publicationProof" in params && params.publicationProof !== undefined) return params;
-  const proof = readOwnPublicationProof();
-  return proof ? { ...params, publicationProof: proof } : params;
+/** 主动建连时附带当前入口的发布记录字符串（若有）；钱包仍解码验签并核对实际来源。 */
+function withOwnPublicationRecord<P extends object>(params: P): P {
+  const provided = (params as Record<string, unknown>).publicationProof;
+  if (provided !== undefined) {
+    if (typeof provided !== "string" || provided.length === 0) throw new TypeError("publicationProof must be a non-empty record string");
+    return params;
+  }
+  const record = readOwnPublicationRecord();
+  return record === null ? params : { ...params, publicationProof: record };
 }

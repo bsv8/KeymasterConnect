@@ -49,7 +49,6 @@
 - [KeymasterRequestOptions](interfaces/KeymasterRequestOptions.md)
 - [KeymasterBrowserEnvironment](interfaces/KeymasterBrowserEnvironment.md)
 - [KeymasterConnectOptions](interfaces/KeymasterConnectOptions.md)
-- [PublicationProof](interfaces/PublicationProof.md)
 - [NetworkIdentity](interfaces/NetworkIdentity.md)
 - [ChannelPublishParams](interfaces/ChannelPublishParams.md)
 - [ChannelPublishResult](interfaces/ChannelPublishResult.md)

@@ -43,7 +43,7 @@ import { KeymasterConnectReceiver } from "keymaster-connect/server";
 
 `acceptReady` / `acceptCancel` 处理控制消息，`sendEvent` 只向当前有效绑定推送，`clear` 只清理协议运行态、不代表业务授权已撤销。未信任来源的消息不会得到响应。每个原请求只可回复一次，重复在途 ID 不会产生第二次业务执行。
 
-应用根入口提供 Client、二进制工具和公开契约。SDK 不提供 publication/origin 公开入口及钱包存储、scope、HKDF；Client 内部只读取页面 URL 证明并检查结构后传递，钱包负责可信来源比对和验签。发布构建归独立 Publisher Vite 插件。
+应用根入口提供 Client、二进制工具和公开契约。SDK 不提供 publication/origin 公开入口及钱包存储、scope、HKDF；Client 内部只读取页面发布记录字符串并整体传递，不设置发布证明专用长度上限，解码、字段校验与验签全部由钱包负责，钱包同时核对可信来源。发布构建归独立 Publisher Vite 插件。
 
 公开类型和纯常量也可从 `keymaster-connect/protocol` 引用；客户端入口不加载接收端代码。
 

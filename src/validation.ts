@@ -11,7 +11,6 @@ import {
   type ConnectLoginParams, type ConnectLogoutParams, type ConnectLaunchParams,
   type ProtocolMethod, type ProtocolRequestMessage,
 } from "./protocol.js";
-import { validatePublicationProof } from "./internal/publicationProof.js";
 /** 校验失败：抛出的对象。service 会捕获并组装 ProtocolError。 */
 export class ProtocolValidationError extends Error {
     readonly code: ProtocolErrorCode;
@@ -140,7 +139,8 @@ function expectPaymentChannelId(raw: unknown): string {
 function validateConnectLoginParams(raw: unknown): ConnectLoginParams {
     const obj = expectObject(raw, "connect.login params");
     // 可信来源属于 Receiver 上下文；任何自报身份字段都硬拒绝。
-    // publicationProof 是 App 入口来源证明对象（非来源自报），可选携带，钱包核对签名与实际来源。
+    // publicationProof 是完整发布记录字符串（非来源自报），可选携带；
+    // Receiver 只校验类型与非空，解码验签与来源核对归钱包。
     for (const key of Object.keys(obj))
         if (key !== "text" && key !== "claims" && key !== "publicationProof")
             throw new ProtocolValidationError("invalid_request", "connect.login contains an unsupported field");
@@ -154,14 +154,7 @@ function validateConnectLoginParams(raw: unknown): ConnectLoginParams {
             throw new ProtocolValidationError("invalid_request", "claims entries must be strings");
         claims = [...obj.claims] as string[];
     }
-    let publicationProof: ConnectLoginParams["publicationProof"];
-    if (obj.publicationProof !== undefined) {
-        try {
-            publicationProof = validatePublicationProof(obj.publicationProof);
-        } catch {
-            throw new ProtocolValidationError("invalid_request", "publicationProof is invalid");
-        }
-    }
+    const publicationProof = expectPublicationRecordString(obj.publicationProof);
     return publicationProof === undefined ? { text, claims } : { text, claims, publicationProof };
 }
 
@@ -180,13 +173,17 @@ function validateConnectLaunchParams(raw: unknown): ConnectLaunchParams {
         throw new ProtocolValidationError("invalid_request", "connect.launch contains an unsupported field");
     }
     const launchToken = expectNonEmptyString(obj.launchToken, "launchToken");
-    if (obj.publicationProof === undefined) return { launchToken };
-    try {
-        const publicationProof = validatePublicationProof(obj.publicationProof);
-        return { launchToken, publicationProof };
-    } catch {
-        throw new ProtocolValidationError("invalid_request", "publicationProof is invalid");
+    const publicationProof = expectPublicationRecordString(obj.publicationProof);
+    return publicationProof === undefined ? { launchToken } : { launchToken, publicationProof };
+}
+
+/** 传输契约只认完整记录字符串；解码、字段与签名校验由钱包负责。 */
+function expectPublicationRecordString(value: unknown): string | undefined {
+    if (value === undefined) return undefined;
+    if (typeof value !== "string" || value.length === 0) {
+        throw new ProtocolValidationError("invalid_request", "publicationProof must be a non-empty record string");
     }
+    return value;
 }
 
 /* ============== channel.* validation（施工单 2026-09-02） ============== */
