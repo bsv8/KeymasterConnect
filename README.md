@@ -31,6 +31,18 @@ console.log(connected.networkIdentity);
 
 使用示例、支持的 Schema 子集与取消边界见 [AI 工具](doc/site/concepts/ai-tools.md)。
 
+## 域名查询
+
+在支持域名查询的钱包中，应用建连后可以读取公开资料。钱包按当前 BSV 网络查询。Profile 默认使用 BSV8，域名查公钥按后缀选择服务，裸名称使用 `.bsv8`。可传 `{ serviceId, signal }` 指定已配置的第三方服务或取消查询。
+
+```ts
+const profile = await client.domain.profile(authorPublicKey);
+const { results } = await client.domain.profiles(authorPublicKeys);
+const publicKey = await client.domain.getPublicKey("alice");
+```
+
+Profile 包含 `publicKeyHex`、带后缀的主要域名 `domain`、`expiresAt`、可选公开文字 `text` 和 BitFS 图片引用 `avatar`、`header`。批量接口最多接收 100 个公钥，按输入顺序返回 `{ publicKeyHex, profile }` 或 `{ publicKeyHex, error: { code } }`。域名查询当前可用工作树候选包验证。
+
 ## 钱包接收端
 
 ```ts
@@ -56,3 +68,21 @@ import { KeymasterConnectReceiver } from "keymaster-connect/server";
 SDK 不提供 App 文件或对象存储接口。App 自行管理数据；独立 `cipher.encrypt/decrypt` 可用于加解密。
 
 客户端页面卸载时，会发送带本次连接绑定的卸载通知，帮助钱包将刷新后的旧连接标记为结束；通知仅尽力发送，不恢复旧授权或重放业务。本包 0.1.8 已包含该通知。
+
+## Staged payments and application keys
+
+`client.payment.prepare` freezes outputs and returns reserved input outpoints. A data-signature template specifies a byte offset in one zero-value data output and a prefix and suffix around the deterministic CBOR input list. `paymentSigningObject` from `keymaster-connect/signing` assembles the bytes for `client.payment.commit`. The wallet approves and signs the staged payment. Cancel and status use the original request identifiers.
+
+`client.application.getPublicKey(purpose)` returns the wallet's public key for the requested purpose. `signMessage({ purpose, message })` uses a domain-separated message digest. `signPayment({ purpose, inputs, address, feeSatoshis, rawTxHex })` approves and signs a transaction spending P2PK outputs for that purpose and returns the exact signed bytes. The private key stays inside the wallet. Clients using the same wallet and purpose share the same key and need wallet approval for each signature or payment.
+
+`client.chain` uses the session network for height, history, raw transactions, unspent outputs and broadcast.
+
+
+## MSFile
+
+- `msfile.read(seedHashHex)` reads verified complete content by hash. The wallet checks local storage and can discover a BitFS seller and purchase the file.
+- `msfile.stat({ seedHashHex })` checks availability in the wallet and at configured suppliers.
+- `msfile.readSeed({ sourceId, seedHashHex })` reads the MasterSeed from the selected source.
+- `msfile.readBlock({ sourceId, seedHashHex, blockHashHex })` reads a block from the selected source.
+- `msfile.import({ fileName, content })` imports content and returns its seed hash once the seller can find it.
+- `msfile.sellerStatus()` checks seller readiness.

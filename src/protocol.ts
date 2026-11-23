@@ -269,6 +269,8 @@ export type ProtocolErrorCode =
  | "payment_pending_limit"
 /** Same stable payment key with different frozen facts. */
  | "id_conflict"
+ | "name_not_found" | "invalid_name" | "invalid_public_key" | "primary_name_required"
+ | "domain_service_not_configured" | "domain_service_unavailable" | "domain_network_mismatch"
 // MSFile 稳定公开错误码（施工单 §6）。supplier wire error code 保留为
 // 内部诊断，不把任意远端字符串直接变成公开 code。
  | "msfile_not_configured" | "msfile_unavailable" | "msfile_identity_required" | "msfile_supplier_not_found" | "msfile_supplier_disabled" | "msfile_invalid_hash" | "msfile_price_limit_exceeded" | "msfile_integrity_error" | "msfile_content_not_found" | "msfile_rate_limited" | "msfile_supplier_error" | "msfile_transport_error" | "msfile_protocol_error" | "internal_error";
@@ -445,6 +447,73 @@ export interface PaymentStatusParams {
 
 export type PaymentStatusResult = PaymentPayResult;
 
+export interface ChainOutpoint {
+    txid: string;
+    vout: number;
+}
+
+export interface PaymentDataSignature {
+    outputIndex: number;
+    offset: number;
+    prefixHex: string;
+    suffixHex: string;
+}
+
+export interface PaymentPrepareParams extends PaymentStatusParams {
+    outputs: PaymentOutput[];
+    dataSignature: PaymentDataSignature;
+}
+
+export type PaymentPrepareResult = PaymentPayResult & {
+    reservation?: { reservationId: string; inputs: ChainOutpoint[]; expiresAt: number };
+};
+
+export interface PaymentReservationParams extends PaymentStatusParams {
+    reservationId: string;
+}
+
+export interface PaymentCommitParams extends PaymentReservationParams {
+    signingObject: BinaryField;
+}
+
+export type ChainScriptHistoryParams = { script: string } & (
+    { state: "confirmed"; fromHeight: number; toHeight: number; cursor?: string }
+    | { state: "unconfirmed"; cursor?: string }
+);
+
+export interface ChainScriptHistoryResult {
+    entries: Array<{ txid: string; height: number | null }>;
+    cursor?: string;
+}
+
+export type ChainTransactionResult =
+    | { state: "not_observed" | "invalid" }
+    | { state: "unconfirmed"; rawTxHex: string }
+    | { state: "confirmed"; rawTxHex: string; height: number; blockHash: string; index: number };
+
+export interface ChainBroadcastResult {
+    state: "accepted" | "rejected" | "unknown";
+    txid: string;
+}
+
+export interface ApplicationPaymentParams {
+    purpose: string;
+    inputs: ChainOutpoint[];
+    address: string;
+    feeSatoshis: number;
+    rawTxHex: string;
+}
+
+export interface MsFileImportParams {
+    fileName: string;
+    content: BinaryField;
+}
+
+export interface MsFileContentResult {
+    seed: BinaryField;
+    content: BinaryField;
+}
+
 export interface ConnectLoginParams {
     /** 人类可读确认文案。 */
     text: string;
@@ -498,6 +567,35 @@ export interface ConnectLaunchResult {
 }
 
 /** 协议方法名常量集合。 */
+export const DOMAIN_MAX_PROFILES = 100;
+
+export interface DomainProfile {
+    publicKeyHex: string;
+    domain: string;
+    avatar?: { seedHashHex: string };
+    header?: { seedHashHex: string };
+    text?: Record<string, string>;
+    expiresAt: number;
+}
+
+export type ProfileResult =
+    | { publicKeyHex: string; profile: DomainProfile }
+    | { publicKeyHex: string; error: { code: "invalid_public_key" | "name_not_found" | "primary_name_required" } };
+
+export interface DomainProfilesResult {
+    results: ProfileResult[];
+}
+
+export interface DomainProfilesParams {
+    publicKeys: string[];
+    serviceId?: string;
+}
+
+export interface DomainGetPublicKeyParams {
+    domain: string;
+    serviceId?: string;
+}
+
 export const PROTOCOL_METHODS = [
     "identity.get",
     "intent.sign",
@@ -505,6 +603,22 @@ export const PROTOCOL_METHODS = [
     "cipher.decrypt",
     "payment.pay",
     "payment.status",
+    "payment.prepare",
+    "payment.commit",
+    "payment.cancel",
+    "chain.get_height",
+    "chain.list_script_history",
+    "chain.get_transaction",
+    "chain.list_script_unspent",
+    "chain.broadcast",
+    "application.key",
+    "application.sign_message",
+    "application.sign_payment",
+    "msfile.seller.status",
+    "msfile.import",
+    "msfile.content.read",
+    "domain.profiles",
+    "domain.get_public_key",
     "connect.login",
     "connect.logout",
     "connect.launch",
@@ -531,6 +645,22 @@ export interface MethodParamsMap {
     "cipher.decrypt": CipherDecryptParams;
     "payment.pay": PaymentPayParams;
     "payment.status": PaymentStatusParams;
+    "payment.prepare": PaymentPrepareParams;
+    "payment.commit": PaymentCommitParams;
+    "payment.cancel": PaymentReservationParams;
+    "chain.get_height": {};
+    "chain.list_script_history": ChainScriptHistoryParams;
+    "chain.get_transaction": { txid: string; observedRawTxHex?: string };
+    "chain.list_script_unspent": { script: string };
+    "chain.broadcast": { rawTxHex: string };
+    "application.key": { purpose: string };
+    "application.sign_message": { purpose: string; message: BinaryField };
+    "application.sign_payment": ApplicationPaymentParams;
+    "msfile.seller.status": {};
+    "msfile.import": MsFileImportParams;
+    "msfile.content.read": MsFileStatParams;
+    "domain.profiles": DomainProfilesParams;
+    "domain.get_public_key": DomainGetPublicKeyParams;
     "connect.login": ConnectLoginParams;
     "connect.logout": ConnectLogoutParams;
     "connect.launch": ConnectLaunchParams;
@@ -547,6 +677,22 @@ export interface MethodResultMap {
     "cipher.decrypt": CipherDecryptResult;
     "payment.pay": PaymentPayResult;
     "payment.status": PaymentStatusResult;
+    "payment.prepare": PaymentPrepareResult;
+    "payment.commit": PaymentPayResult;
+    "payment.cancel": PaymentPayResult;
+    "chain.get_height": { height: number };
+    "chain.list_script_history": ChainScriptHistoryResult;
+    "chain.get_transaction": ChainTransactionResult;
+    "chain.list_script_unspent": { outputs: Array<ChainOutpoint & { satoshis: number }> };
+    "chain.broadcast": ChainBroadcastResult;
+    "application.key": { publicKeyHex: string };
+    "application.sign_message": { publicKeyHex: string; signature: BinaryField };
+    "application.sign_payment": { rawTxHex: string };
+    "msfile.seller.status": { ready: boolean };
+    "msfile.import": { seedHashHex: string };
+    "msfile.content.read": MsFileContentResult;
+    "domain.profiles": DomainProfilesResult;
+    "domain.get_public_key": { publicKeyHex: string };
     "connect.login": ConnectLoginResult;
     "connect.logout": ConnectLogoutResult;
     "connect.launch": ConnectLaunchResult;

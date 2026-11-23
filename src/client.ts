@@ -17,6 +17,8 @@ import {
   type ConnectLoginParams,
   type ConnectLoginResult,
   type ConnectLogoutResult,
+  type DomainProfile,
+  type DomainProfilesResult,
   type IdentityGetParams,
   type IdentityGetResult,
   type IntentSignParams,
@@ -40,6 +42,11 @@ import {
 
 /** iframe：钱包内嵌；appView：钱包弹出 App；popup：App 主动打开钱包。 */
 export type KeymasterConnectMode = "iframe" | "appView" | "popup";
+
+export interface DomainQueryOptions extends Pick<KeymasterRequestOptions, "signal"> {
+  /** Omit to use the wallet's default service for the current network. */
+  serviceId?: string;
+}
 
 /** Observable lifecycle of the browser transport. */
 export type KeymasterConnectState = "idle" | "opening" | "connected" | "disconnected";
@@ -193,6 +200,23 @@ const DEFAULT_CLOSE_POLL_MS = 500;
  * Manage the Session Window and send lower-level protocol requests.
  */
 export class KeymasterConnectClient {
+  readonly domain = {
+    /** Read the primary domain's public profile for one public key. */
+    profile: async (publicKeyHex: string, options?: DomainQueryOptions): Promise<DomainProfile> => {
+      const { results: [result] } = await this.domain.profiles([publicKeyHex], options);
+      if ("error" in result) throw new KeymasterProtocolError(result.error.code, "Domain profile unavailable");
+      return result.profile;
+    },
+    /** Read public profiles in input order, with per-key errors. */
+    profiles: (publicKeys: string[], { serviceId, signal }: DomainQueryOptions = {}): Promise<DomainProfilesResult> =>
+      this.request("domain.profiles", { publicKeys, serviceId }, { signal }),
+    /** Read the current owner's compressed public key for a domain. */
+    getPublicKey: async (domain: string, { serviceId, signal }: DomainQueryOptions = {}): Promise<string> => {
+      const result = await this.request("domain.get_public_key", { domain, serviceId }, { signal });
+      return result.publicKeyHex;
+    }
+  };
+
   private identityValue: Readonly<NetworkIdentity> | null = null;
   private bindingId: string | null = null;
   private readonly aiTools = new AiToolClient(
@@ -439,6 +463,50 @@ export class KeymasterConnectClient {
   }
 
   /** 按原业务 ID 只读查询付款状态，不自动重付或更换 ID。 */
+  readonly payment = {
+    prepare: (params: MethodParams<"payment.prepare">, options?: KeymasterRequestOptions) => this.request("payment.prepare", params, options),
+    commit: (params: MethodParams<"payment.commit">, options?: KeymasterRequestOptions) => this.request("payment.commit", params, options),
+    cancel: (params: MethodParams<"payment.cancel">, options?: KeymasterRequestOptions) => this.request("payment.cancel", params, options),
+    status: (params: PaymentStatusParams, options?: KeymasterRequestOptions) => this.paymentStatus(params, options),
+  };
+
+  readonly chain = {
+    getHeight: (options?: KeymasterRequestOptions) => this.request("chain.get_height", {}, options),
+    listScriptHistory: (params: MethodParams<"chain.list_script_history">, options?: KeymasterRequestOptions) =>
+      this.request("chain.list_script_history", params, options),
+    getTransaction: (txid: string, options?: KeymasterRequestOptions & { observedRawTxHex?: string }) =>
+      this.request("chain.get_transaction", { txid, observedRawTxHex: options?.observedRawTxHex }, options),
+    listScriptUnspent: (script: string, options?: KeymasterRequestOptions) => this.request("chain.list_script_unspent", { script }, options),
+    broadcast: (rawTxHex: string, options?: KeymasterRequestOptions) => this.request("chain.broadcast", { rawTxHex }, options),
+  };
+
+  readonly application = {
+    getPublicKey: (purpose: string, options?: KeymasterRequestOptions) => this.request("application.key", { purpose }, options),
+    signMessage: (params: MethodParams<"application.sign_message">, options?: KeymasterRequestOptions) =>
+      this.request("application.sign_message", params, options),
+    signPayment: (params: MethodParams<"application.sign_payment">, options?: KeymasterRequestOptions) =>
+      this.request("application.sign_payment", params, options),
+  };
+
+  /** File import, discovery, and reading through the wallet. @group MSFile */
+  readonly msfile = {
+    /** Check whether the active wallet can serve newly imported files. */
+    sellerStatus: (options?: KeymasterRequestOptions) => this.request("msfile.seller.status", {}, options),
+    /** Import a complete file and wait for it to be available to the seller. */
+    import: (params: MethodParams<"msfile.import">, options?: KeymasterRequestOptions) => this.request("msfile.import", params, options),
+    /** Read a complete file by seed hash, discovering and buying it if needed. */
+    read: (seedHashHex: string, options?: KeymasterRequestOptions) => this.request("msfile.content.read", { seedHashHex }, options),
+    /** Check availability in the wallet and at its configured suppliers. */
+    stat: (params: MsFileStatParams, options?: KeymasterRequestOptions): Promise<MsFileStatResult> =>
+      this.request("msfile.stat", params, options),
+    /** Read a MasterSeed from a specific source. The wallet handles any purchase. */
+    readSeed: (params: MsFileSeedReadParams, options?: KeymasterRequestOptions): Promise<MsFileReadResult> =>
+      this.request("msfile.seed.read", params, options),
+    /** Read a single block from a specific source. The wallet handles any purchase. */
+    readBlock: (params: MsFileBlockReadParams, options?: KeymasterRequestOptions): Promise<MsFileReadResult> =>
+      this.request("msfile.block.read", params, options),
+  };
+
   paymentStatus(params: PaymentStatusParams, options?: KeymasterRequestOptions): Promise<PaymentStatusResult> {
     return this.request("payment.status", params, options);
   }
@@ -465,38 +533,6 @@ export class KeymasterConnectClient {
     options?: KeymasterRequestOptions
   ): Promise<ChannelSubscriptionSetResult> {
     return this.request("channel.subscription_set", params, options);
-  }
-
-  /**
-   * Calls `msfile.stat` to query every enabled MSFile supplier for a seed
-   * hash. The caller selects supplier/hash only; price policy stays inside
-   * Keymaster.
-   *
-   * @group MSFile
-   */
-  msfileStat(params: MsFileStatParams, options?: KeymasterRequestOptions): Promise<MsFileStatResult> {
-    return this.request("msfile.stat", params, options);
-  }
-
-  /**
-   * Calls `msfile.seed.read` to buy and read a MasterSeed by hash. There is no
-   * price parameter: Keymaster resolves the amount from its settings or asks
-   * the user for approval when needed.
-   *
-   * @group MSFile
-   */
-  msfileReadSeed(params: MsFileSeedReadParams, options?: KeymasterRequestOptions): Promise<MsFileReadResult> {
-    return this.request("msfile.seed.read", params, options);
-  }
-
-  /**
-   * Calls `msfile.block.read` to buy and read a single file block by hash.
-   * Like {@link msfileReadSeed}, no caller-supplied price is accepted.
-   *
-   * @group MSFile
-   */
-  msfileReadBlock(params: MsFileBlockReadParams, options?: KeymasterRequestOptions): Promise<MsFileReadResult> {
-    return this.request("msfile.block.read", params, options);
   }
 
   /**

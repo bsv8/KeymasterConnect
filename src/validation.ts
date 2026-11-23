@@ -1,3 +1,4 @@
+import { assertPaymentSignatureSlot, validateApplicationPurpose } from "./signing.js";
 import * as P from "./protocol.js";
 
 import {
@@ -80,6 +81,30 @@ export function assertOriginMatches(aud: string, eventOrigin: string): void {
     }
 }
 
+function domainServiceID(params: Record<string, unknown>, input: string): string | undefined {
+    if (Object.keys(params).some(key => key !== input && key !== "serviceId")) {
+        throw new ProtocolValidationError("invalid_request", "Unexpected domain query parameter");
+    }
+    const id = params.serviceId;
+    if (id !== undefined && (typeof id !== "string" || !/^[A-Za-z0-9_-]{1,64}$/u.test(id))) {
+        throw new ProtocolValidationError("invalid_request", "Invalid domain service ID");
+    }
+    return id;
+}
+
+function validateDomainProfilesParams(params: Record<string, unknown>): P.DomainProfilesParams {
+    const serviceId = domainServiceID(params, "publicKeys");
+    const keys = params.publicKeys;
+    if (!Array.isArray(keys) || keys.length > P.DOMAIN_MAX_PROFILES) {
+        throw new ProtocolValidationError("invalid_request", "Expected up to 100 public keys");
+    }
+    const publicKeys = Array.from(keys, key => {
+        if (typeof key !== "string") throw new ProtocolValidationError("invalid_request", "Public keys must be strings");
+        return key;
+    });
+    return { publicKeys, serviceId };
+}
+
 /* ============== Connect v1 payment.pay / payment.status ============== */
 function validatePaymentPayParams(raw: unknown): PaymentPayParams {
     const obj = expectObject(raw, "payment.pay params");
@@ -117,6 +142,81 @@ function validatePaymentStatusParams(raw: unknown): PaymentStatusParams {
     if (clientRequestId.length > 128 || !/^[A-Za-z0-9._:-]+$/u.test(clientRequestId))
         throw new ProtocolValidationError("invalid_request", "clientRequestId is invalid");
     return { clientRequestId };
+}
+
+function keys(obj: Record<string, unknown>, allowed: string[]): void {
+    if (Object.keys(obj).some(key => !allowed.includes(key))) {
+        throw new ProtocolValidationError("invalid_request", "Unexpected request field");
+    }
+}
+
+function hex(value: unknown, field: string, pattern = /^(?:[0-9a-f]{2})+$/iu): string {
+    const str = expectString(value, field);
+    if (!pattern.test(str)) throw new ProtocolValidationError("invalid_request", `Invalid ${field}`);
+    return str.toLowerCase();
+}
+
+function natural(value: unknown, field: string, max = Number.MAX_SAFE_INTEGER): number {
+    if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0 || value > max) {
+        throw new ProtocolValidationError("invalid_request", `Invalid ${field}`);
+    }
+    return value;
+}
+
+function applicationPurpose(value: unknown): string {
+    try { return validateApplicationPurpose(expectString(value, "purpose")); }
+    catch { throw new ProtocolValidationError("invalid_request", "Invalid application purpose"); }
+}
+
+function validatePrepare(obj: Record<string, unknown>): P.PaymentPrepareParams {
+    keys(obj, ["clientRequestId", "outputs", "dataSignature"]);
+    const { clientRequestId, outputs } = validatePaymentPayParams({ clientRequestId: obj.clientRequestId, outputs: obj.outputs });
+    const raw = expectObject(obj.dataSignature, "dataSignature");
+    keys(raw, ["outputIndex", "offset", "prefixHex", "suffixHex"]);
+    const dataSignature = {
+        outputIndex: natural(raw.outputIndex, "outputIndex"),
+        offset: natural(raw.offset, "offset"),
+        prefixHex: hex(raw.prefixHex, "prefixHex", /^(?:[0-9a-f]{2})*$/iu),
+        suffixHex: hex(raw.suffixHex, "suffixHex", /^(?:[0-9a-f]{2})*$/iu),
+    };
+    try { assertPaymentSignatureSlot(outputs, dataSignature); }
+    catch { throw new ProtocolValidationError("invalid_request", "Invalid payment signature slot"); }
+    return { clientRequestId, outputs, dataSignature };
+}
+
+function validateReservation(obj: Record<string, unknown>, commit: boolean): P.PaymentReservationParams | P.PaymentCommitParams {
+    keys(obj, commit ? ["clientRequestId", "reservationId", "signingObject"] : ["clientRequestId", "reservationId"]);
+    const params = validatePaymentStatusParams({ clientRequestId: obj.clientRequestId });
+    const reservationId = hex(obj.reservationId, "reservationId", /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/iu);
+    return { ...params, reservationId, ...(commit ? { signingObject: parseBinaryField(obj.signingObject, "signingObject") } : {}) };
+}
+
+function validateScriptHistory(obj: Record<string, unknown>): P.ChainScriptHistoryParams {
+    const { state } = obj;
+    const script = hex(obj.script, "script");
+    const cursor = obj.cursor === undefined ? undefined : expectNonEmptyString(obj.cursor, "cursor");
+    if (state === "unconfirmed") {
+        keys(obj, ["state", "script", "cursor"]);
+        return { state, script, cursor };
+    }
+    if (state !== "confirmed") throw new ProtocolValidationError("invalid_request", "Invalid script history state");
+    keys(obj, ["state", "script", "cursor", "fromHeight", "toHeight"]);
+    const fromHeight = natural(obj.fromHeight, "fromHeight");
+    const toHeight = natural(obj.toHeight, "toHeight");
+    if (toHeight < fromHeight) throw new ProtocolValidationError("invalid_request", "Invalid height range");
+    return { state, script, cursor, fromHeight, toHeight };
+}
+
+function validateApplicationPayment(obj: Record<string, unknown>): P.ApplicationPaymentParams {
+    keys(obj, ["purpose", "inputs", "address", "feeSatoshis", "rawTxHex"]);
+    if (!Array.isArray(obj.inputs) || obj.inputs.length === 0) throw new ProtocolValidationError("invalid_request", "Expected recovery inputs");
+    const inputs = Array.from(obj.inputs, raw => {
+        const row = expectObject(raw, "outpoint");
+        keys(row, ["txid", "vout"]);
+        return { txid: hex(row.txid, "txid", /^[0-9a-f]{64}$/iu), vout: natural(row.vout, "vout", 0xffffffff) };
+    });
+    return { purpose: applicationPurpose(obj.purpose), inputs, address: expectNonEmptyString(obj.address, "address"),
+        feeSatoshis: natural(obj.feeSatoshis, "feeSatoshis"), rawTxHex: hex(obj.rawTxHex, "rawTxHex") };
 }
 
 function expectPaymentChannelId(raw: unknown): string {
@@ -550,6 +650,39 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
         case "cipher.decrypt": normalized = validateCipherDecryptParams(params); break;
         case "payment.pay": normalized = validatePaymentPayParams(params); break;
         case "payment.status": normalized = validatePaymentStatusParams(params); break;
+        case "payment.prepare": normalized = validatePrepare(params); break;
+        case "payment.commit": normalized = validateReservation(params, true); break;
+        case "payment.cancel": normalized = validateReservation(params, false); break;
+        case "chain.get_height":
+        case "msfile.seller.status": keys(params, []); normalized = {}; break;
+        case "chain.list_script_history": normalized = validateScriptHistory(params); break;
+        case "chain.get_transaction":
+            keys(params, ["txid", "observedRawTxHex"]);
+            normalized = { txid: hex(params.txid, "txid", /^[0-9a-f]{64}$/iu),
+                observedRawTxHex: params.observedRawTxHex === undefined ? undefined : hex(params.observedRawTxHex, "observedRawTxHex") };
+            break;
+        case "chain.list_script_unspent":
+            keys(params, ["script"]); normalized = { script: hex(params.script, "script") }; break;
+        case "chain.broadcast":
+            keys(params, ["rawTxHex"]); normalized = { rawTxHex: hex(params.rawTxHex, "rawTxHex") }; break;
+        case "application.key":
+            keys(params, ["purpose"]);
+            normalized = { purpose: applicationPurpose(params.purpose) };
+            break;
+        case "application.sign_message":
+            keys(params, ["purpose", "message"]);
+            normalized = { purpose: applicationPurpose(params.purpose), message: parseBinaryField(params.message, "message") };
+            break;
+        case "application.sign_payment": normalized = validateApplicationPayment(params); break;
+        case "msfile.import":
+            keys(params, ["fileName", "content"]);
+            normalized = { fileName: expectNonEmptyString(params.fileName, "fileName"), content: parseBinaryField(params.content, "content") }; break;
+        case "msfile.content.read":
+            keys(params, ["seedHashHex"]); normalized = validateMsFileStatParams(params); break;
+        case "domain.profiles": normalized = validateDomainProfilesParams(params); break;
+        case "domain.get_public_key":
+            normalized = { domain: expectString(params.domain, "domain"), serviceId: domainServiceID(params, "domain") };
+            break;
         case "channel.publish": normalized = validateChannelPublishParams(params); break;
         case "channel.subscription_set": normalized = validateChannelSubscriptionSetParams(params); break;
         case "msfile.stat": normalized = validateMsFileStatParams(params); break;

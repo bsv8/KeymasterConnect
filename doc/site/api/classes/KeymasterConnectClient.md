@@ -403,72 +403,125 @@ Replace this connection's tool set. Empty array unregisters all tools. Re-regist
 
 ## MSFile
 
-### msfileStat()
+### msfile
 
-> **msfileStat**(`params`, `options?`): `Promise`\<[`MsFileStatResult`](../interfaces/MsFileStatResult.md)\>
+> `readonly` **msfile**: `object`
 
-Calls `msfile.stat` to query every enabled MSFile supplier for a seed
-hash. The caller selects supplier/hash only; price policy stays inside
-Keymaster.
+File import, discovery, and reading through the wallet.
 
-#### Parameters
+#### sellerStatus
 
-##### params
+> **sellerStatus**: (`options?`) => `Promise`\<\{ `ready`: `boolean`; \}\>
+
+Check whether the active wallet can serve newly imported files.
+
+##### Parameters
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<\{ `ready`: `boolean`; \}\>
+
+#### import
+
+> **import**: (`params`, `options?`) => `Promise`\<\{ `seedHashHex`: `string`; \}\>
+
+Import a complete file and wait for it to be available to the seller.
+
+##### Parameters
+
+###### params
+
+[`MsFileImportParams`](../interfaces/MsFileImportParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<\{ `seedHashHex`: `string`; \}\>
+
+#### read
+
+> **read**: (`seedHashHex`, `options?`) => `Promise`\<[`MsFileContentResult`](../interfaces/MsFileContentResult.md)\>
+
+Read a complete file by seed hash, discovering and buying it if needed.
+
+##### Parameters
+
+###### seedHashHex
+
+`string`
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`MsFileContentResult`](../interfaces/MsFileContentResult.md)\>
+
+#### stat
+
+> **stat**: (`params`, `options?`) => `Promise`\<[`MsFileStatResult`](../interfaces/MsFileStatResult.md)\>
+
+Check availability in the wallet and at its configured suppliers.
+
+##### Parameters
+
+###### params
 
 [`MsFileStatParams`](../interfaces/MsFileStatParams.md)
 
-##### options?
+###### options?
 
 [`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
 
-#### Returns
+##### Returns
 
 `Promise`\<[`MsFileStatResult`](../interfaces/MsFileStatResult.md)\>
 
-***
+#### readSeed
 
-### msfileReadSeed()
+> **readSeed**: (`params`, `options?`) => `Promise`\<[`MsFileReadResult`](../interfaces/MsFileReadResult.md)\>
 
-> **msfileReadSeed**(`params`, `options?`): `Promise`\<[`MsFileReadResult`](../interfaces/MsFileReadResult.md)\>
+Read a MasterSeed from a specific source. The wallet handles any purchase.
 
-Calls `msfile.seed.read` to buy and read a MasterSeed by hash. There is no
-price parameter: Keymaster resolves the amount from its settings or asks
-the user for approval when needed.
+##### Parameters
 
-#### Parameters
-
-##### params
+###### params
 
 [`MsFileSeedReadParams`](../interfaces/MsFileSeedReadParams.md)
 
-##### options?
+###### options?
 
 [`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
 
-#### Returns
+##### Returns
 
 `Promise`\<[`MsFileReadResult`](../interfaces/MsFileReadResult.md)\>
 
-***
+#### readBlock
 
-### msfileReadBlock()
+> **readBlock**: (`params`, `options?`) => `Promise`\<[`MsFileReadResult`](../interfaces/MsFileReadResult.md)\>
 
-> **msfileReadBlock**(`params`, `options?`): `Promise`\<[`MsFileReadResult`](../interfaces/MsFileReadResult.md)\>
+Read a single block from a specific source. The wallet handles any purchase.
 
-Calls `msfile.block.read` to buy and read a single file block by hash.
-Like [msfileReadSeed](#msfilereadseed), no caller-supplied price is accepted.
+##### Parameters
 
-#### Parameters
-
-##### params
+###### params
 
 [`MsFileBlockReadParams`](../interfaces/MsFileBlockReadParams.md)
 
-##### options?
+###### options?
 
 [`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
 
-#### Returns
+##### Returns
 
 `Promise`\<[`MsFileReadResult`](../interfaces/MsFileReadResult.md)\>
 

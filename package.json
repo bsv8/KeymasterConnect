@@ -1,6 +1,6 @@
 {
   "name": "keymaster-connect",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Keymaster Connect v1 的独立客户端与接收端协议栈",
   "type": "module",
   "repository": {
@@ -35,6 +35,11 @@
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js",
       "default": "./dist/server.js"
+    },
+    "./signing": {
+      "types": "./dist/signing.d.ts",
+      "import": "./dist/signing.js",
+      "default": "./dist/signing.js"
     },
     "./script": {
       "types": "./dist/script.d.ts",
