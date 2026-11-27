@@ -136,6 +136,59 @@ export interface MsFileStatParams {
     seedHashHex: string;
 }
 
+export interface MsFileContentReadParams extends MsFileStatParams {
+    clientRequestId?: string;
+    /** 本次下载任务的完整数据块单价上限，单位聪。 */
+    maxFullBlockPriceSatoshis?: string;
+}
+
+export interface MsFileReadStatusParams {
+    clientRequestId: string;
+}
+
+export type MsFileContentOpenParams = MsFileContentReadParams & MsFileReadStatusParams;
+
+/** 查询钱包允许的块价范围，或按读取编号修改当前任务的手动块价。 */
+export interface MsFileDownloadPriceParams {
+    clientRequestId?: string;
+    maxFullBlockPriceSatoshis?: string;
+}
+
+export interface MsFileDownloadPriceResult {
+    /** 钱包允许应用设置的最大完整块单价，单位聪。 */
+    walletMaxFullBlockPriceSatoshis: string;
+}
+
+export interface MsFileContentRangeParams extends MsFileReadStatusParams {
+    offset: number;
+    length: number;
+}
+
+export interface MsFileContentRangeResult {
+    fileSizeBytes?: number;
+    mediaType?: string;
+    content?: BinaryField;
+}
+
+interface MsFileReadStatusDetails {
+    clientRequestId: string;
+    seedHashHex: string;
+    taskId?: string;
+    verifiedBlockCount?: number;
+    totalBlockCount?: number;
+    funds?: "none" | "pending" | "settled" | "problem";
+    /** 此读取记录有权调整关联下载任务的手动块价。 */
+    priceAdjustable?: true;
+    /** 当前任务的完整数据块单价上限，单位聪。 */
+    currentMaxFullBlockPriceSatoshis?: string;
+}
+
+/** Action for the caller: wait for content, read the complete file, or stop waiting. */
+export type MsFileReadStatus = MsFileReadStatusDetails & (
+    | { phase: "pending" | "available"; error?: never }
+    | { phase: "stopped"; error: ProtocolError }
+);
+
 export interface MsFileStatAvailableEntry {
     supplierPublicKeyHex: string;
     status: "available";
@@ -267,8 +320,8 @@ export type ProtocolErrorCode =
  | "hardware_connect_payment_unsupported" | "payment_not_found"
 /** Too many non-terminal Connect payment responsibilities. */
  | "payment_pending_limit"
-/** Same stable payment key with different frozen facts. */
- | "id_conflict"
+/** Same stable request key with different facts, or a resumable MSFile read failure. */
+ | "id_conflict" | "msfile_read_not_found" | "msfile_read_interrupted" | "msfile_read_cancelled" | "msfile_range_timeout"
  | "name_not_found" | "invalid_name" | "invalid_public_key" | "primary_name_required"
  | "domain_service_not_configured" | "domain_service_unavailable" | "domain_network_mismatch"
 // MSFile 稳定公开错误码（施工单 §6）。supplier wire error code 保留为
@@ -306,8 +359,16 @@ export interface ProtocolCancelMessage {
  * 设计缘由：
  *   - `channel.message_received` 是已验签的 Channel 公开消息，只发送给
  *     当前 session 已精确订阅的频道；
+ *   - `chain.height_changed` 是当前连接钱包已同步的链尖快照；
  */
-export type ProtocolEventName = "channel.message_received";
+export type ProtocolEventName = "channel.message_received" | "chain.height_changed";
+
+/** 钱包同一次同步取得的链尖高度和哈希。 */
+export interface ChainHeightResult {
+    height: number;
+    /** 64 位小写十六进制区块哈希。 */
+    blockHash: string;
+}
 
 export interface IdentityGetParams {
     /** 目标站点 origin；必须等于 `event.origin`，否则拒绝。 */
@@ -491,6 +552,19 @@ export type ChainTransactionResult =
     | { state: "unconfirmed"; rawTxHex: string }
     | { state: "confirmed"; rawTxHex: string; height: number; blockHash: string; index: number };
 
+export type ChainTransactionBatchParams = { txids: string[]; mode: "raw" | "status" };
+
+export type ChainTransactionBatchEntry = { txid: string } & (
+    | { state: "not_observed" }
+    | { state: "unconfirmed"; rawTxHex?: string }
+    | { state: "confirmed"; height: number; blockHash: string; rawTxHex?: string }
+);
+
+export interface ChainTransactionBatchResult {
+    /** Missing IDs have no usable observation in this response and can be retried. */
+    entries: ChainTransactionBatchEntry[];
+}
+
 export interface ChainBroadcastResult {
     state: "accepted" | "rejected" | "unknown";
     txid: string;
@@ -514,7 +588,15 @@ export interface MsFileContentResult {
     content: BinaryField;
 }
 
+/** Signed by the connected wallet over the canonical login-proof envelope. */
+export interface ConnectLoginProof {
+    envelope: BinaryField;
+    signature: BinaryField;
+}
+
 export interface ConnectLoginParams {
+    /** One-time challenge issued by the application backend (32 bytes, lowercase hex). */
+    loginChallenge?: string;
     /** 人类可读确认文案。 */
     text: string;
     /**
@@ -532,6 +614,8 @@ export interface ConnectLoginParams {
 }
 
 export interface ConnectLoginResult {
+    /** Present when the request includes loginChallenge. */
+    loginProof?: ConnectLoginProof;
     /** 不透明恢复凭据，绑定原钱包和精确来源；不得写入日志或 URL。 */
     authorizationId: string;
     networkIdentity: NetworkIdentity;
@@ -550,6 +634,8 @@ export interface ConnectLogoutResult {
 }
 
 export interface ConnectLaunchParams {
+    /** One-time challenge issued by the application backend (32 bytes, lowercase hex). */
+    loginChallenge?: string;
     /** 由 launcher 写入 client app 启动 URL 的 launchToken。一次性消费。 */
     launchToken: string;
     /**
@@ -560,6 +646,8 @@ export interface ConnectLaunchParams {
 }
 
 export interface ConnectLaunchResult {
+    /** Present when the request includes loginChallenge. */
+    loginProof?: ConnectLoginProof;
     authorizationId: string;
     networkIdentity: NetworkIdentity;
     resolvedClaims: Record<string, ResolvedClaimValue>;
@@ -609,6 +697,7 @@ export const PROTOCOL_METHODS = [
     "chain.get_height",
     "chain.list_script_history",
     "chain.get_transaction",
+    "chain.get_transactions",
     "chain.list_script_unspent",
     "chain.broadcast",
     "application.key",
@@ -617,6 +706,10 @@ export const PROTOCOL_METHODS = [
     "msfile.seller.status",
     "msfile.import",
     "msfile.content.read",
+    "msfile.content.status",
+    "msfile.content.open",
+    "msfile.content.price",
+    "msfile.content.range",
     "domain.profiles",
     "domain.get_public_key",
     "connect.login",
@@ -651,6 +744,7 @@ export interface MethodParamsMap {
     "chain.get_height": {};
     "chain.list_script_history": ChainScriptHistoryParams;
     "chain.get_transaction": { txid: string; observedRawTxHex?: string };
+    "chain.get_transactions": ChainTransactionBatchParams;
     "chain.list_script_unspent": { script: string };
     "chain.broadcast": { rawTxHex: string };
     "application.key": { purpose: string };
@@ -658,7 +752,11 @@ export interface MethodParamsMap {
     "application.sign_payment": ApplicationPaymentParams;
     "msfile.seller.status": {};
     "msfile.import": MsFileImportParams;
-    "msfile.content.read": MsFileStatParams;
+    "msfile.content.read": MsFileContentReadParams;
+    "msfile.content.status": MsFileReadStatusParams;
+    "msfile.content.open": MsFileContentOpenParams;
+    "msfile.content.price": MsFileDownloadPriceParams;
+    "msfile.content.range": MsFileContentRangeParams;
     "domain.profiles": DomainProfilesParams;
     "domain.get_public_key": DomainGetPublicKeyParams;
     "connect.login": ConnectLoginParams;
@@ -680,9 +778,10 @@ export interface MethodResultMap {
     "payment.prepare": PaymentPrepareResult;
     "payment.commit": PaymentPayResult;
     "payment.cancel": PaymentPayResult;
-    "chain.get_height": { height: number };
+    "chain.get_height": ChainHeightResult;
     "chain.list_script_history": ChainScriptHistoryResult;
     "chain.get_transaction": ChainTransactionResult;
+    "chain.get_transactions": ChainTransactionBatchResult;
     "chain.list_script_unspent": { outputs: Array<ChainOutpoint & { satoshis: number }> };
     "chain.broadcast": ChainBroadcastResult;
     "application.key": { publicKeyHex: string };
@@ -691,6 +790,10 @@ export interface MethodResultMap {
     "msfile.seller.status": { ready: boolean };
     "msfile.import": { seedHashHex: string };
     "msfile.content.read": MsFileContentResult;
+    "msfile.content.status": MsFileReadStatus;
+    "msfile.content.open": MsFileReadStatus;
+    "msfile.content.price": MsFileDownloadPriceResult;
+    "msfile.content.range": MsFileContentRangeResult;
     "domain.profiles": DomainProfilesResult;
     "domain.get_public_key": { publicKeyHex: string };
     "connect.login": ConnectLoginResult;
@@ -706,7 +809,8 @@ export interface MethodResultMap {
 export type MethodParams<M extends ProtocolMethod> = M extends ProtocolMethod ? keyof MethodParamsMap[M] extends never ? Record<string, never> : MethodParamsMap[M] : never;
 export type MethodResult<M extends ProtocolMethod = ProtocolMethod> = MethodResultMap[M];
 export type ProtocolEventPayload =
-  { v: typeof PROTOCOL_VERSION; type: "event"; event: "channel.message_received"; data: ChannelMessageReceivedEventData };
+  | { v: typeof PROTOCOL_VERSION; type: "event"; event: "channel.message_received"; data: ChannelMessageReceivedEventData }
+  | { v: typeof PROTOCOL_VERSION; type: "event"; event: "chain.height_changed"; data: ChainHeightResult };
 export type ProtocolEventMessage = ProtocolEventPayload & { networkIdentity: NetworkIdentity; bindingId: string };
 export interface ProtocolRequestMessage<M extends ProtocolMethod = ProtocolMethod> {
   v: typeof PROTOCOL_VERSION; type: "request"; id: string; method: M; params: MethodParams<M>; bindingId?: string;

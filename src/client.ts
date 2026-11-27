@@ -4,6 +4,7 @@ import type { AiTool, AiToolsRegistered } from "./tools.js";
 import {
   PROTOCOL_VERSION, PROTOCOL_METHODS,
   validateNetworkIdentity, sameNetworkIdentity, type NetworkIdentity,
+  type ChainHeightResult,
   type ChannelPublishParams,
   type ChannelPublishResult,
   type ChannelSubscriptionSetParams,
@@ -127,7 +128,7 @@ export interface KeymasterConnectOptions {
   requestTimeoutMs?: number;
   /** Session Window close detection interval. Defaults to 500ms. */
   closePollMs?: number;
-  /** 接收当前精确订阅频道上的已验签 Channel 事件。 */
+  /** 接收当前连接的公开事件。 */
   onEvent?: (event: ProtocolEventMessage) => void;
   /** Receives transport lifecycle changes. */
   onStateChange?: (state: KeymasterConnectState) => void;
@@ -147,6 +148,14 @@ interface PendingRequest {
 const DEFAULT_READY_TIMEOUT_MS = 120_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
 const DEFAULT_CLOSE_POLL_MS = 500;
+
+/** 校验钱包发送的完整链尖快照。 */
+function parseChainHeight(value: unknown): ChainHeightResult | undefined {
+  const { height, blockHash } = (value as Partial<ChainHeightResult> | null | undefined) ?? {};
+  if (typeof height !== "number" || !Number.isSafeInteger(height) || height < 0
+    || typeof blockHash !== "string" || !/^[0-9a-f]{64}$/u.test(blockHash)) return undefined;
+  return { height, blockHash };
+}
 
 /**
  * Official browser client for Keymaster Connect V1.
@@ -219,6 +228,8 @@ export class KeymasterConnectClient {
 
   private identityValue: Readonly<NetworkIdentity> | null = null;
   private bindingId: string | null = null;
+  private chainHeight: ChainHeightResult | undefined;
+  private readonly heightListeners = new Set<(height: ChainHeightResult) => void>();
   private readonly aiTools = new AiToolClient(
     () => this.stateValue === "connected" ? this.bindingId : null,
     message => { if (!this.sessionWindow || isWindowClosed(this.sessionWindow)) throw new Error("Wallet unavailable"); this.sessionWindow.postMessage(message, this.targetOrigin); },
@@ -471,11 +482,26 @@ export class KeymasterConnectClient {
   };
 
   readonly chain = {
-    getHeight: (options?: KeymasterRequestOptions) => this.request("chain.get_height", {}, options),
+    /** 一次性读取钱包已同步的链尖高度和区块哈希。 */
+    getHeight: async (options?: KeymasterRequestOptions): Promise<ChainHeightResult> => {
+      const snapshot = parseChainHeight(await this.request("chain.get_height", {}, options));
+      if (!snapshot) throw new KeymasterProtocolError("invalid_request", "Malformed chain height result");
+      this.chainHeight = snapshot;
+      return { ...snapshot };
+    },
+    /** 接收已有链尖及后续高度或哈希变化，返回退订函数。 */
+    subscribeHeight: (handler: (height: ChainHeightResult) => void): (() => void) => {
+      this.heightListeners.add(handler);
+      if (this.chainHeight) this.notifyHeight(handler, this.chainHeight);
+      return () => { this.heightListeners.delete(handler); };
+    },
     listScriptHistory: (params: MethodParams<"chain.list_script_history">, options?: KeymasterRequestOptions) =>
       this.request("chain.list_script_history", params, options),
     getTransaction: (txid: string, options?: KeymasterRequestOptions & { observedRawTxHex?: string }) =>
       this.request("chain.get_transaction", { txid, observedRawTxHex: options?.observedRawTxHex }, options),
+    /** Observe up to 20 transactions with optional raw bytes and no block position lookup. */
+    getTransactions: (params: MethodParams<"chain.get_transactions">, options?: KeymasterRequestOptions) =>
+      this.request("chain.get_transactions", params, options),
     listScriptUnspent: (script: string, options?: KeymasterRequestOptions) => this.request("chain.list_script_unspent", { script }, options),
     broadcast: (rawTxHex: string, options?: KeymasterRequestOptions) => this.request("chain.broadcast", { rawTxHex }, options),
   };
@@ -495,7 +521,24 @@ export class KeymasterConnectClient {
     /** Import a complete file and wait for it to be available to the seller. */
     import: (params: MethodParams<"msfile.import">, options?: KeymasterRequestOptions) => this.request("msfile.import", params, options),
     /** Read a complete file by seed hash, discovering and buying it if needed. */
-    read: (seedHashHex: string, options?: KeymasterRequestOptions) => this.request("msfile.content.read", { seedHashHex }, options),
+    read: (seedHashHex: string, options?: KeymasterRequestOptions & Pick<MethodParams<"msfile.content.read">, "clientRequestId" | "maxFullBlockPriceSatoshis">) =>
+      this.request("msfile.content.read", {
+        seedHashHex,
+        ...(options?.clientRequestId !== undefined ? { clientRequestId: options.clientRequestId } : {}),
+        ...(options?.maxFullBlockPriceSatoshis !== undefined ? { maxFullBlockPriceSatoshis: options.maxFullBlockPriceSatoshis } : {}),
+      }, options),
+    /** Query the original resumable read without starting a new purchase. */
+    readStatus: (clientRequestId: string, options?: KeymasterRequestOptions) =>
+      this.request("msfile.content.status", { clientRequestId }, options),
+    /** Open verified content or start/resume its authorized download. */
+    openContent: (params: MethodParams<"msfile.content.open">, options?: KeymasterRequestOptions) =>
+      this.request("msfile.content.open", params, options),
+    /** Query the wallet block-price ceiling or adjust an owned running read. */
+    downloadPrice: (params: MethodParams<"msfile.content.price"> = {}, options?: KeymasterRequestOptions) =>
+      this.request("msfile.content.price", params, options),
+    /** Read up to 256 KiB from verified content while its download continues. */
+    readRange: (params: MethodParams<"msfile.content.range">, options?: KeymasterRequestOptions) =>
+      this.request("msfile.content.range", params, { ...options, timeoutMs: options?.timeoutMs ?? 65_000 }),
     /** Check availability in the wallet and at its configured suppliers. */
     stat: (params: MsFileStatParams, options?: KeymasterRequestOptions): Promise<MsFileStatResult> =>
       this.request("msfile.stat", params, options),
@@ -635,8 +678,18 @@ export class KeymasterConnectClient {
     }
     if (value.type === "event") {
       // 只投递当前公开契约中的事件，避免已删除能力仍透传给 App。
-      if (value.event !== "channel.message_received") return;
+      if (value.event !== "channel.message_received" && value.event !== "chain.height_changed") return;
       try { if (!this.identityValue || value.bindingId !== this.bindingId || !sameNetworkIdentity(this.identityValue, validateNetworkIdentity(value.networkIdentity))) return; } catch { return; }
+      if (value.event === "chain.height_changed") {
+        const next = parseChainHeight(value.data);
+        if (!next || (next.height === this.chainHeight?.height && next.blockHash === this.chainHeight.blockHash)) return;
+        this.chainHeight = next;
+        for (const handler of [...this.heightListeners]) {
+          if (this.bindingId !== value.bindingId) return;
+          if (this.heightListeners.has(handler)) this.notifyHeight(handler, next);
+        }
+        if (this.bindingId !== value.bindingId) return;
+      }
       try {
         this.options.onEvent?.(event.data as ProtocolEventMessage);
       } catch {
@@ -667,6 +720,7 @@ export class KeymasterConnectClient {
         const connected = result.result as { networkIdentity: unknown; authorizationId: string };
         if (!sameNetworkIdentity(identity, validateNetworkIdentity(connected.networkIdentity)) || typeof value.bindingId !== "string" || !value.bindingId || typeof connected.authorizationId !== "string" || !connected.authorizationId) throw new Error("Invalid connection identity or binding");
         this.aiTools.clear(new Error("Connection binding replaced; register tools again"));
+        this.chainHeight = undefined;
         this.identityValue = Object.freeze({ ...identity });
         this.authorizationId = connected.authorizationId;
         this.bindingId = value.bindingId;
@@ -722,10 +776,15 @@ export class KeymasterConnectClient {
     this.disconnect(new KeymasterTransportError("client_closed", "Application page unloaded"));
   };
 
+  private notifyHeight(handler: (height: ChainHeightResult) => void, snapshot: ChainHeightResult): void {
+    try { handler({ ...snapshot }); } catch { /* 监听器独立于传输与其他监听器。 */ }
+  }
+
   private disconnect(reason: unknown): void {
     this.aiTools.clear(reason);
     this.identityValue = null;
     this.bindingId = null;
+    this.chainHeight = undefined;
     this.rejectAll(reason);
     this.failReady(reason);
     this.stopClosePolling();

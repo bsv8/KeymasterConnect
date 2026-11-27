@@ -6,10 +6,19 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
+| [`loginChallenge?`](#loginchallenge) | `string` | No | One-time challenge issued by the application backend (32 bytes, lowercase hex). |
 | [`launchToken`](#launchtoken) | `string` | Yes | 由 launcher 写入 client app 启动 URL 的 launchToken。 |
 | [`publicationProof?`](#publicationproof) | `string` | No | App 入口的发布来源证明记录字符串（可选；钱包发起的目录启动一般不需要客户端提交， 钱包从所选入口自行读取；应用提交时钱包核对一致性，不能自报来源）。 |
 
 ## Properties
+
+### loginChallenge?
+
+> `optional` **loginChallenge?**: `string`
+
+One-time challenge issued by the application backend (32 bytes, lowercase hex).
+
+***
 
 ### launchToken
 

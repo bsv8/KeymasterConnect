@@ -1,6 +1,6 @@
 {
   "name": "keymaster-connect",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Keymaster Connect v1 的独立客户端与接收端协议栈",
   "type": "module",
   "repository": {
@@ -48,16 +48,16 @@
     }
   },
   "scripts": {
-    "prepublishOnly": "npm run typecheck && npm run build",
-    "prepare": "npm run build",
+    "prepublishOnly": "pnpm run typecheck && pnpm run build",
+    "prepare": "pnpm run build",
     "build": "tsup",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "sdk:build": "npm run build",
-    "sdk:typecheck": "npm run typecheck",
-    "api:generate": "npm --prefix doc run api:generate",
-    "doc:dev": "npm --prefix doc run dev",
-    "doc:build": "npm --prefix doc run build",
-    "doc:preview": "npm --prefix doc run preview"
+    "sdk:build": "pnpm run build",
+    "sdk:typecheck": "pnpm run typecheck",
+    "api:generate": "pnpm --dir doc run api:generate",
+    "doc:dev": "pnpm --dir doc run dev",
+    "doc:build": "pnpm --dir doc run build",
+    "doc:preview": "pnpm --dir doc run preview"
   },
   "devDependencies": {
     "tsup": "8.5.1",

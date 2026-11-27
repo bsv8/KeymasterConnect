@@ -168,6 +168,10 @@
     "collapsed": true,
     "items": [
       {
+        "text": "DomainQueryOptions",
+        "link": "/api/interfaces/DomainQueryOptions.md"
+      },
+      {
         "text": "KeymasterRequestOptions",
         "link": "/api/interfaces/KeymasterRequestOptions.md"
       },
@@ -210,6 +214,30 @@
       {
         "text": "MsFileStatParams",
         "link": "/api/interfaces/MsFileStatParams.md"
+      },
+      {
+        "text": "MsFileContentReadParams",
+        "link": "/api/interfaces/MsFileContentReadParams.md"
+      },
+      {
+        "text": "MsFileReadStatusParams",
+        "link": "/api/interfaces/MsFileReadStatusParams.md"
+      },
+      {
+        "text": "MsFileDownloadPriceParams",
+        "link": "/api/interfaces/MsFileDownloadPriceParams.md"
+      },
+      {
+        "text": "MsFileDownloadPriceResult",
+        "link": "/api/interfaces/MsFileDownloadPriceResult.md"
+      },
+      {
+        "text": "MsFileContentRangeParams",
+        "link": "/api/interfaces/MsFileContentRangeParams.md"
+      },
+      {
+        "text": "MsFileContentRangeResult",
+        "link": "/api/interfaces/MsFileContentRangeResult.md"
       },
       {
         "text": "MsFileStatAvailableEntry",
@@ -268,6 +296,10 @@
         "link": "/api/interfaces/ProtocolCancelMessage.md"
       },
       {
+        "text": "ChainHeightResult",
+        "link": "/api/interfaces/ChainHeightResult.md"
+      },
+      {
         "text": "IdentityGetParams",
         "link": "/api/interfaces/IdentityGetParams.md"
       },
@@ -320,6 +352,54 @@
         "link": "/api/interfaces/PaymentStatusParams.md"
       },
       {
+        "text": "ChainOutpoint",
+        "link": "/api/interfaces/ChainOutpoint.md"
+      },
+      {
+        "text": "PaymentDataSignature",
+        "link": "/api/interfaces/PaymentDataSignature.md"
+      },
+      {
+        "text": "PaymentPrepareParams",
+        "link": "/api/interfaces/PaymentPrepareParams.md"
+      },
+      {
+        "text": "PaymentReservationParams",
+        "link": "/api/interfaces/PaymentReservationParams.md"
+      },
+      {
+        "text": "PaymentCommitParams",
+        "link": "/api/interfaces/PaymentCommitParams.md"
+      },
+      {
+        "text": "ChainScriptHistoryResult",
+        "link": "/api/interfaces/ChainScriptHistoryResult.md"
+      },
+      {
+        "text": "ChainTransactionBatchResult",
+        "link": "/api/interfaces/ChainTransactionBatchResult.md"
+      },
+      {
+        "text": "ChainBroadcastResult",
+        "link": "/api/interfaces/ChainBroadcastResult.md"
+      },
+      {
+        "text": "ApplicationPaymentParams",
+        "link": "/api/interfaces/ApplicationPaymentParams.md"
+      },
+      {
+        "text": "MsFileImportParams",
+        "link": "/api/interfaces/MsFileImportParams.md"
+      },
+      {
+        "text": "MsFileContentResult",
+        "link": "/api/interfaces/MsFileContentResult.md"
+      },
+      {
+        "text": "ConnectLoginProof",
+        "link": "/api/interfaces/ConnectLoginProof.md"
+      },
+      {
         "text": "ConnectLoginParams",
         "link": "/api/interfaces/ConnectLoginParams.md"
       },
@@ -342,6 +422,22 @@
       {
         "text": "ConnectLaunchResult",
         "link": "/api/interfaces/ConnectLaunchResult.md"
+      },
+      {
+        "text": "DomainProfile",
+        "link": "/api/interfaces/DomainProfile.md"
+      },
+      {
+        "text": "DomainProfilesResult",
+        "link": "/api/interfaces/DomainProfilesResult.md"
+      },
+      {
+        "text": "DomainProfilesParams",
+        "link": "/api/interfaces/DomainProfilesParams.md"
+      },
+      {
+        "text": "DomainGetPublicKeyParams",
+        "link": "/api/interfaces/DomainGetPublicKeyParams.md"
       },
       {
         "text": "MethodParamsMap",
@@ -462,6 +558,14 @@
         "link": "/api/type-aliases/MsFileSourceKind.md"
       },
       {
+        "text": "MsFileContentOpenParams",
+        "link": "/api/type-aliases/MsFileContentOpenParams.md"
+      },
+      {
+        "text": "MsFileReadStatus",
+        "link": "/api/type-aliases/MsFileReadStatus.md"
+      },
+      {
         "text": "MsFileSupplierStat",
         "link": "/api/type-aliases/MsFileSupplierStat.md"
       },
@@ -500,6 +604,30 @@
       {
         "text": "PaymentStatusResult",
         "link": "/api/type-aliases/PaymentStatusResult.md"
+      },
+      {
+        "text": "PaymentPrepareResult",
+        "link": "/api/type-aliases/PaymentPrepareResult.md"
+      },
+      {
+        "text": "ChainScriptHistoryParams",
+        "link": "/api/type-aliases/ChainScriptHistoryParams.md"
+      },
+      {
+        "text": "ChainTransactionResult",
+        "link": "/api/type-aliases/ChainTransactionResult.md"
+      },
+      {
+        "text": "ChainTransactionBatchParams",
+        "link": "/api/type-aliases/ChainTransactionBatchParams.md"
+      },
+      {
+        "text": "ChainTransactionBatchEntry",
+        "link": "/api/type-aliases/ChainTransactionBatchEntry.md"
+      },
+      {
+        "text": "ProfileResult",
+        "link": "/api/type-aliases/ProfileResult.md"
       },
       {
         "text": "ProtocolMethod",
@@ -586,6 +714,10 @@
       {
         "text": "PROTOCOL_VERSION",
         "link": "/api/variables/PROTOCOL_VERSION.md"
+      },
+      {
+        "text": "DOMAIN_MAX_PROFILES",
+        "link": "/api/variables/DOMAIN_MAX_PROFILES.md"
       },
       {
         "text": "PROTOCOL_METHODS",

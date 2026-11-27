@@ -12,6 +12,27 @@
 | [`cipher.decrypt`](#cipherdecrypt) | [`CipherDecryptResult`](CipherDecryptResult.md) | Yes | — |
 | [`payment.pay`](#paymentpay) | [`PaymentPayResult`](PaymentPayResult.md) | Yes | — |
 | [`payment.status`](#paymentstatus) | [`PaymentPayResult`](PaymentPayResult.md) | Yes | — |
+| [`payment.prepare`](#paymentprepare) | [`PaymentPrepareResult`](../type-aliases/PaymentPrepareResult.md) | Yes | — |
+| [`payment.commit`](#paymentcommit) | [`PaymentPayResult`](PaymentPayResult.md) | Yes | — |
+| [`payment.cancel`](#paymentcancel) | [`PaymentPayResult`](PaymentPayResult.md) | Yes | — |
+| [`chain.get_height`](#chainget-height) | [`ChainHeightResult`](ChainHeightResult.md) | Yes | — |
+| [`chain.list_script_history`](#chainlist-script-history) | [`ChainScriptHistoryResult`](ChainScriptHistoryResult.md) | Yes | — |
+| [`chain.get_transaction`](#chainget-transaction) | [`ChainTransactionResult`](../type-aliases/ChainTransactionResult.md) | Yes | — |
+| [`chain.get_transactions`](#chainget-transactions) | [`ChainTransactionBatchResult`](ChainTransactionBatchResult.md) | Yes | — |
+| [`chain.list_script_unspent`](#chainlist-script-unspent) | `object` | Yes | — |
+| [`chain.broadcast`](#chainbroadcast) | [`ChainBroadcastResult`](ChainBroadcastResult.md) | Yes | — |
+| [`application.key`](#applicationkey) | `object` | Yes | — |
+| [`application.sign_message`](#applicationsign-message) | `object` | Yes | — |
+| [`application.sign_payment`](#applicationsign-payment) | `object` | Yes | — |
+| [`msfile.seller.status`](#msfilesellerstatus) | `object` | Yes | — |
+| [`msfile.import`](#msfileimport) | `object` | Yes | — |
+| [`msfile.content.read`](#msfilecontentread) | [`MsFileContentResult`](MsFileContentResult.md) | Yes | — |
+| [`msfile.content.status`](#msfilecontentstatus) | [`MsFileReadStatus`](../type-aliases/MsFileReadStatus.md) | Yes | — |
+| [`msfile.content.open`](#msfilecontentopen) | [`MsFileReadStatus`](../type-aliases/MsFileReadStatus.md) | Yes | — |
+| [`msfile.content.price`](#msfilecontentprice) | [`MsFileDownloadPriceResult`](MsFileDownloadPriceResult.md) | Yes | — |
+| [`msfile.content.range`](#msfilecontentrange) | [`MsFileContentRangeResult`](MsFileContentRangeResult.md) | Yes | — |
+| [`domain.profiles`](#domainprofiles) | [`DomainProfilesResult`](DomainProfilesResult.md) | Yes | — |
+| [`domain.get_public_key`](#domainget-public-key) | `object` | Yes | — |
 | [`connect.login`](#connectlogin) | [`ConnectLoginResult`](ConnectLoginResult.md) | Yes | — |
 | [`connect.logout`](#connectlogout) | [`ConnectLogoutResult`](ConnectLogoutResult.md) | Yes | — |
 | [`connect.launch`](#connectlaunch) | [`ConnectLaunchResult`](ConnectLaunchResult.md) | Yes | — |
@@ -56,6 +77,164 @@
 ### payment.status
 
 > **payment.status**: [`PaymentPayResult`](PaymentPayResult.md)
+
+***
+
+### payment.prepare
+
+> **payment.prepare**: [`PaymentPrepareResult`](../type-aliases/PaymentPrepareResult.md)
+
+***
+
+### payment.commit
+
+> **payment.commit**: [`PaymentPayResult`](PaymentPayResult.md)
+
+***
+
+### payment.cancel
+
+> **payment.cancel**: [`PaymentPayResult`](PaymentPayResult.md)
+
+***
+
+### chain.get\_height
+
+> **chain.get\_height**: [`ChainHeightResult`](ChainHeightResult.md)
+
+***
+
+### chain.list\_script\_history
+
+> **chain.list\_script\_history**: [`ChainScriptHistoryResult`](ChainScriptHistoryResult.md)
+
+***
+
+### chain.get\_transaction
+
+> **chain.get\_transaction**: [`ChainTransactionResult`](../type-aliases/ChainTransactionResult.md)
+
+***
+
+### chain.get\_transactions
+
+> **chain.get\_transactions**: [`ChainTransactionBatchResult`](ChainTransactionBatchResult.md)
+
+***
+
+### chain.list\_script\_unspent
+
+> **chain.list\_script\_unspent**: `object`
+
+#### outputs
+
+> **outputs**: [`ChainOutpoint`](ChainOutpoint.md) & `object`[]
+
+***
+
+### chain.broadcast
+
+> **chain.broadcast**: [`ChainBroadcastResult`](ChainBroadcastResult.md)
+
+***
+
+### application.key
+
+> **application.key**: `object`
+
+#### publicKeyHex
+
+> **publicKeyHex**: `string`
+
+***
+
+### application.sign\_message
+
+> **application.sign\_message**: `object`
+
+#### publicKeyHex
+
+> **publicKeyHex**: `string`
+
+#### signature
+
+> **signature**: [`BinaryField`](BinaryField.md)
+
+***
+
+### application.sign\_payment
+
+> **application.sign\_payment**: `object`
+
+#### rawTxHex
+
+> **rawTxHex**: `string`
+
+***
+
+### msfile.seller.status
+
+> **msfile.seller.status**: `object`
+
+#### ready
+
+> **ready**: `boolean`
+
+***
+
+### msfile.import
+
+> **msfile.import**: `object`
+
+#### seedHashHex
+
+> **seedHashHex**: `string`
+
+***
+
+### msfile.content.read
+
+> **msfile.content.read**: [`MsFileContentResult`](MsFileContentResult.md)
+
+***
+
+### msfile.content.status
+
+> **msfile.content.status**: [`MsFileReadStatus`](../type-aliases/MsFileReadStatus.md)
+
+***
+
+### msfile.content.open
+
+> **msfile.content.open**: [`MsFileReadStatus`](../type-aliases/MsFileReadStatus.md)
+
+***
+
+### msfile.content.price
+
+> **msfile.content.price**: [`MsFileDownloadPriceResult`](MsFileDownloadPriceResult.md)
+
+***
+
+### msfile.content.range
+
+> **msfile.content.range**: [`MsFileContentRangeResult`](MsFileContentRangeResult.md)
+
+***
+
+### domain.profiles
+
+> **domain.profiles**: [`DomainProfilesResult`](DomainProfilesResult.md)
+
+***
+
+### domain.get\_public\_key
+
+> **domain.get\_public\_key**: `object`
+
+#### publicKeyHex
+
+> **publicKeyHex**: `string`
 
 ***
 

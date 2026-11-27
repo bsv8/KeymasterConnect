@@ -2,13 +2,15 @@
 
 Keymaster Connect v1 的独立生产协议栈，包含 Client、公开契约和 Receiver，不依赖钱包源码或 WebLoom。
 
-无 scope 的 `keymaster-connect`，本包版本为 **0.1.8**，包含完整应用发布证明与显式登录／启动；wire 始终保持 v1。安装：
+无 scope 的 `keymaster-connect`，本包版本为 **0.4.0**，包含完整应用发布证明、带挑战码的显式登录／启动、链尖订阅与批量交易查询、可恢复 MSFile 读取；wire 始终保持 v1。安装：
 
 ```sh
-npm install --save-exact keymaster-connect@0.1.8
+pnpm add --save-exact keymaster-connect@0.4.0
 ```
 
 支持钱包内嵌 iframe、钱包打开 App（appView）和 App 主动打开完整钱包（popup，默认）。App 主动连接打开完整钱包根页面 `/`，不打开独立协议页；错误和超时不关闭钱包窗口。完整说明见 [App 主动打开钱包](doc/site/concepts/popup-mode.md)。
+
+需要站点会话时，App 后端先签发 32 字节一次性挑战码，再将 lowercase hex 作为 `loginChallenge` 传给 `login` 或 `launch`。钱包在结果中返回 `loginProof`；后端必须验证签名、挑战码、网络、公钥和本站 origin 后建立会话。挑战码不得写入日志或重复使用。
 
 许可证沿用仓库原有 AGPL v3，见包内 LICENSE。
 
@@ -41,7 +43,7 @@ const { results } = await client.domain.profiles(authorPublicKeys);
 const publicKey = await client.domain.getPublicKey("alice");
 ```
 
-Profile 包含 `publicKeyHex`、带后缀的主要域名 `domain`、`expiresAt`、可选公开文字 `text` 和 BitFS 图片引用 `avatar`、`header`。批量接口最多接收 100 个公钥，按输入顺序返回 `{ publicKeyHex, profile }` 或 `{ publicKeyHex, error: { code } }`。域名查询当前可用工作树候选包验证。
+Profile 包含 `publicKeyHex`、带后缀的主要域名 `domain`、`expiresAt`、可选公开文字 `text` 和 BitFS 图片引用 `avatar`、`header`。批量接口最多接收 100 个公钥，按输入顺序返回 `{ publicKeyHex, profile }` 或 `{ publicKeyHex, error: { code } }`。域名查询由 `0.3.0` 及以后的正式版本提供。
 
 ## 钱包接收端
 
@@ -59,9 +61,9 @@ import { KeymasterConnectReceiver } from "keymaster-connect/server";
 
 公开类型和纯常量也可从 `keymaster-connect/protocol` 引用；客户端入口不加载接收端代码。
 
-仓库根目录是 SDK：`npm run typecheck` 检查类型，`npm run build` 只构建 SDK，`npm publish` 从根目录发布 SDK 新版本（已发布的版本不可覆盖）。发布命令见 [RELEASING.md](RELEASING.md)。
+仓库根目录是 SDK：`pnpm run typecheck` 检查类型，`pnpm run build` 只构建 SDK，`pnpm publish` 从根目录发布 SDK 新版本（已发布的版本不可覆盖）。发布命令见 [RELEASING.md](RELEASING.md)。
 
-文档是私有的 [doc 子项目](doc/README.md)：根目录执行 `npm run api:generate` 生成 API，`npm run doc:build` 构建站点，`npm run doc:dev` 启动预览开发。文档不进入 npm 发布包。包版本与 wire 版本不是同一概念。
+文档是私有的 [doc 子项目](doc/README.md)：根目录执行 `pnpm run api:generate` 生成 API，`pnpm run doc:build` 构建站点，`pnpm run doc:dev` 启动预览开发。文档不进入 npm 发布包。包版本与 wire 版本不是同一概念。
 
 ## 数据持久化
 
@@ -77,6 +79,9 @@ SDK 不提供 App 文件或对象存储接口。App 自行管理数据；独立 
 
 `client.chain` uses the session network for height, history, raw transactions, unspent outputs and broadcast.
 
+`chain.subscribeHeight(handler)` returns an unsubscribe function. The listener receives `{ height, blockHash }` for the latest available chain tip and changes to either field. `chain.getHeight()` reads the same wallet cache once. Before the first successful sync, the read reports `internal_error` and the subscription waits for the first tip.
+
+`client.chain.getTransactions({ txids, mode: "raw" | "status" })` 支持一次查询最多 20 个交易 ID。确认记录含区块高度和哈希。`raw` 模式同时返回原始交易，`status` 模式只返回观察状态。响应缺项可按原 ID 重试。
 
 ## MSFile
 
@@ -86,3 +91,11 @@ SDK 不提供 App 文件或对象存储接口。App 自行管理数据；独立 
 - `msfile.readBlock({ sourceId, seedHashHex, blockHashHex })` reads a block from the selected source.
 - `msfile.import({ fileName, content })` imports content and returns its seed hash once the seller can find it.
 - `msfile.sellerStatus()` checks seller readiness.
+
+Version `0.4.0` supports resumable reads. Save a `clientRequestId` before calling `msfile.read(seedHashHex, { clientRequestId })` or `msfile.openContent({ seedHashHex, clientRequestId })`. Use `msfile.readStatus(clientRequestId)` to look up the same read after reconnecting.
+
+`readStatus` and `openContent` report `pending` while the wallet is working, `available` when the complete file is readable, and `stopped` when the app should stop waiting. `stopped` includes `error.code` and `error.message`. If the wallet has an interrupted purchase, the user can resume it there and the app can check the same read ID again. `funds` reports settlement separately.
+
+`msfile.readRange({ clientRequestId, offset, length })` reads verified ranges while the complete file is still pending.
+
+`msfile.downloadPrice()` reads the wallet's maximum manual full-block price. Pass `maxFullBlockPriceSatoshis` to `openContent` to choose the new download's initial full-block price ceiling. The app may call `downloadPrice({ clientRequestId, maxFullBlockPriceSatoshis })` for a running download that it was authorized to adjust. Seed prices follow the wallet's existing rules.

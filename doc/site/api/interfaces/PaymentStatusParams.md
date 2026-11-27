@@ -8,6 +8,11 @@
 | :--- | :--- | :---: | :--- |
 | [`clientRequestId`](#clientrequestid) | `string` | Yes | — |
 
+## Extended by
+
+- [`PaymentPrepareParams`](PaymentPrepareParams.md)
+- [`PaymentReservationParams`](PaymentReservationParams.md)
+
 ## Properties
 
 ### clientRequestId

@@ -14,7 +14,7 @@ Configuration for [KeymasterConnectClient](../classes/KeymasterConnectClient.md)
 | [`readyTimeoutMs?`](#readytimeoutms) | `number` | No | 等待完整钱包初始化/解锁并发送 ready 的最长时间，默认两分钟；超时不关闭钱包。 |
 | [`requestTimeoutMs?`](#requesttimeoutms) | `number` | No | Default request timeout. |
 | [`closePollMs?`](#closepollms) | `number` | No | Session Window close detection interval. |
-| [`onEvent?`](#onevent) | (`event`) => `void` | No | 接收当前精确订阅频道上的已验签 Channel 事件。 |
+| [`onEvent?`](#onevent) | (`event`) => `void` | No | 接收当前连接的公开事件。 |
 | [`onStateChange?`](#onstatechange) | (`state`) => `void` | No | Receives transport lifecycle changes. |
 | [`environment?`](#environment) | [`KeymasterBrowserEnvironment`](KeymasterBrowserEnvironment.md) | No | Optional browser adapter, normally only supplied by tests. |
 
@@ -72,7 +72,7 @@ Session Window close detection interval. Defaults to 500ms.
 
 > `optional` **onEvent?**: (`event`) => `void`
 
-接收当前精确订阅频道上的已验签 Channel 事件。
+接收当前连接的公开事件。
 
 #### Parameters
 

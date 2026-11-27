@@ -150,6 +150,13 @@ function keys(obj: Record<string, unknown>, allowed: string[]): void {
     }
 }
 
+function msfileBlockPrice(value: unknown): string | undefined {
+    if (value === undefined) return undefined;
+    if (typeof value !== "string" || !/^[1-9][0-9]{0,15}$/u.test(value))
+        throw new ProtocolValidationError("invalid_request", "Invalid MSFile full block price limit");
+    return value;
+}
+
 function hex(value: unknown, field: string, pattern = /^(?:[0-9a-f]{2})+$/iu): string {
     const str = expectString(value, field);
     if (!pattern.test(str)) throw new ProtocolValidationError("invalid_request", `Invalid ${field}`);
@@ -242,7 +249,7 @@ function validateConnectLoginParams(raw: unknown): ConnectLoginParams {
     // publicationProof 是完整发布记录字符串（非来源自报），可选携带；
     // Receiver 只校验类型与非空，解码验签与来源核对归钱包。
     for (const key of Object.keys(obj))
-        if (key !== "text" && key !== "claims" && key !== "publicationProof")
+        if (key !== "text" && key !== "claims" && key !== "publicationProof" && key !== "loginChallenge")
             throw new ProtocolValidationError("invalid_request", "connect.login contains an unsupported field");
     const text = expectString(obj.text, "text");
     let claims: string[] | undefined;
@@ -255,7 +262,10 @@ function validateConnectLoginParams(raw: unknown): ConnectLoginParams {
         claims = [...obj.claims] as string[];
     }
     const publicationProof = expectPublicationRecordString(obj.publicationProof);
-    return publicationProof === undefined ? { text, claims } : { text, claims, publicationProof };
+    return { text, claims,
+        ...(publicationProof === undefined ? {} : { publicationProof }),
+        ...validateLoginChallenge(obj.loginChallenge),
+    };
 }
 
 /**
@@ -269,12 +279,23 @@ function validateConnectLogoutParams(raw: unknown): ConnectLogoutParams {
 /* ============== connect.launch（施工单 2026-06-29 001 硬切换） ============== */
 function validateConnectLaunchParams(raw: unknown): ConnectLaunchParams {
     const obj = expectObject(raw, "connect.launch params");
-    if (Object.keys(obj).some((key) => key !== "launchToken" && key !== "publicationProof")) {
+    if (Object.keys(obj).some((key) => key !== "launchToken" && key !== "publicationProof" && key !== "loginChallenge")) {
         throw new ProtocolValidationError("invalid_request", "connect.launch contains an unsupported field");
     }
     const launchToken = expectNonEmptyString(obj.launchToken, "launchToken");
     const publicationProof = expectPublicationRecordString(obj.publicationProof);
-    return publicationProof === undefined ? { launchToken } : { launchToken, publicationProof };
+    return { launchToken,
+        ...(publicationProof === undefined ? {} : { publicationProof }),
+        ...validateLoginChallenge(obj.loginChallenge),
+    };
+}
+
+function validateLoginChallenge(value: unknown): { loginChallenge?: string } {
+    if (value === undefined) return {};
+    if (typeof value !== "string" || !/^[0-9a-f]{64}$/u.test(value)) {
+        throw new ProtocolValidationError("invalid_request", "loginChallenge must be 32 bytes in lowercase hex");
+    }
+    return { loginChallenge: value };
 }
 
 /** 传输契约只认完整记录字符串；解码、字段与签名校验由钱包负责。 */
@@ -661,6 +682,17 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
             normalized = { txid: hex(params.txid, "txid", /^[0-9a-f]{64}$/iu),
                 observedRawTxHex: params.observedRawTxHex === undefined ? undefined : hex(params.observedRawTxHex, "observedRawTxHex") };
             break;
+        case "chain.get_transactions": {
+            keys(params, ["txids", "mode"]);
+            const { txids, mode } = params;
+            if (!Array.isArray(txids) || !txids.length || txids.length > 20 || (mode !== "raw" && mode !== "status")) {
+                throw new ProtocolValidationError("invalid_request", "Expected 1 to 20 transaction IDs and a valid query mode");
+            }
+            const ids = Array.from(txids, txid => hex(txid, "txid", /^[0-9a-f]{64}$/iu));
+            if (new Set(ids).size !== ids.length) throw new ProtocolValidationError("invalid_request", "Duplicate transaction ID");
+            normalized = { txids: ids, mode } satisfies P.ChainTransactionBatchParams;
+            break;
+        }
         case "chain.list_script_unspent":
             keys(params, ["script"]); normalized = { script: hex(params.script, "script") }; break;
         case "chain.broadcast":
@@ -678,7 +710,42 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
             keys(params, ["fileName", "content"]);
             normalized = { fileName: expectNonEmptyString(params.fileName, "fileName"), content: parseBinaryField(params.content, "content") }; break;
         case "msfile.content.read":
-            keys(params, ["seedHashHex"]); normalized = validateMsFileStatParams(params); break;
+        case "msfile.content.open": {
+            keys(params, ["seedHashHex", "clientRequestId", "maxFullBlockPriceSatoshis"]);
+            const price = msfileBlockPrice(params.maxFullBlockPriceSatoshis);
+            const needsId = method === "msfile.content.open" || price !== undefined || params.clientRequestId !== undefined;
+            normalized = {
+                ...validateMsFileStatParams(params),
+                ...(needsId ? validatePaymentStatusParams({ clientRequestId: params.clientRequestId }) : {}),
+                ...(price === undefined ? {} : { maxFullBlockPriceSatoshis: price }),
+            };
+            break;
+        }
+        case "msfile.content.status":
+            normalized = validatePaymentStatusParams(params);
+            break;
+        case "msfile.content.price": {
+            keys(params, ["clientRequestId", "maxFullBlockPriceSatoshis"]);
+            const price = msfileBlockPrice(params.maxFullBlockPriceSatoshis);
+            normalized = price === undefined && params.clientRequestId === undefined ? {} : {
+                ...validatePaymentStatusParams({ clientRequestId: params.clientRequestId }),
+                ...(price === undefined ? {} : { maxFullBlockPriceSatoshis: price }),
+            };
+            if (price === undefined && params.clientRequestId !== undefined)
+                throw new ProtocolValidationError("invalid_request", "Expected a full block price limit");
+            break;
+        }
+        case "msfile.content.range": {
+            keys(params, ["clientRequestId", "offset", "length"]);
+            const { offset, length } = params;
+            if (typeof offset !== "number" || !Number.isSafeInteger(offset) || offset < 0 ||
+                typeof length !== "number" || !Number.isSafeInteger(length) || length < 0 || length > 256 * 1024 ||
+                !Number.isSafeInteger(offset + length)) {
+                throw new ProtocolValidationError("invalid_request", "Invalid MSFile byte range");
+            }
+            normalized = { ...validatePaymentStatusParams({ clientRequestId: params.clientRequestId }), offset, length };
+            break;
+        }
         case "domain.profiles": normalized = validateDomainProfilesParams(params); break;
         case "domain.get_public_key":
             normalized = { domain: expectString(params.domain, "domain"), serviceId: domainServiceID(params, "domain") };

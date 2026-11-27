@@ -8,6 +8,10 @@
 | :--- | :--- | :---: | :--- |
 | [`seedHashHex`](#seedhashhex) | `string` | Yes | — |
 
+## Extended by
+
+- [`MsFileContentReadParams`](MsFileContentReadParams.md)
+
 ## Properties
 
 ### seedHashHex

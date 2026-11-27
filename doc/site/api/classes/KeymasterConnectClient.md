@@ -284,7 +284,7 @@ inference.
 
 ##### M
 
-`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"payment.pay"` \| `"payment.status"` \| `"connect.login"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
+`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.prepare"` \| `"payment.commit"` \| `"payment.cancel"` \| `"chain.get_height"` \| `"chain.list_script_history"` \| `"chain.get_transaction"` \| `"chain.get_transactions"` \| `"chain.list_script_unspent"` \| `"chain.broadcast"` \| `"application.key"` \| `"application.sign_message"` \| `"application.sign_payment"` \| `"msfile.seller.status"` \| `"msfile.import"` \| `"msfile.content.read"` \| `"msfile.content.status"` \| `"msfile.content.open"` \| `"msfile.content.price"` \| `"msfile.content.range"` \| `"domain.profiles"` \| `"domain.get_public_key"` \| `"connect.login"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
 
 #### Parameters
 
@@ -385,8 +385,6 @@ Replace this connection's tool set. Empty array unregisters all tools. Re-regist
 
 > **paymentStatus**(`params`, `options?`): `Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
 
-按原业务 ID 只读查询付款状态，不自动重付或更换 ID。
-
 #### Parameters
 
 ##### params
@@ -459,11 +457,91 @@ Read a complete file by seed hash, discovering and buying it if needed.
 
 ###### options?
 
-[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md) & `Pick`\<[`MsFileContentReadParams`](../interfaces/MsFileContentReadParams.md), `"maxFullBlockPriceSatoshis"` \| `"clientRequestId"`\>
 
 ##### Returns
 
 `Promise`\<[`MsFileContentResult`](../interfaces/MsFileContentResult.md)\>
+
+#### readStatus
+
+> **readStatus**: (`clientRequestId`, `options?`) => `Promise`\<[`MsFileReadStatus`](../type-aliases/MsFileReadStatus.md)\>
+
+Query the original resumable read without starting a new purchase.
+
+##### Parameters
+
+###### clientRequestId
+
+`string`
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`MsFileReadStatus`](../type-aliases/MsFileReadStatus.md)\>
+
+#### openContent
+
+> **openContent**: (`params`, `options?`) => `Promise`\<[`MsFileReadStatus`](../type-aliases/MsFileReadStatus.md)\>
+
+Open verified content or start/resume its authorized download.
+
+##### Parameters
+
+###### params
+
+[`MsFileContentOpenParams`](../type-aliases/MsFileContentOpenParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`MsFileReadStatus`](../type-aliases/MsFileReadStatus.md)\>
+
+#### downloadPrice
+
+> **downloadPrice**: (`params`, `options?`) => `Promise`\<[`MsFileDownloadPriceResult`](../interfaces/MsFileDownloadPriceResult.md)\>
+
+Query the wallet block-price ceiling or adjust an owned running read.
+
+##### Parameters
+
+###### params?
+
+[`MsFileDownloadPriceParams`](../interfaces/MsFileDownloadPriceParams.md) = `{}`
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`MsFileDownloadPriceResult`](../interfaces/MsFileDownloadPriceResult.md)\>
+
+#### readRange
+
+> **readRange**: (`params`, `options?`) => `Promise`\<[`MsFileContentRangeResult`](../interfaces/MsFileContentRangeResult.md)\>
+
+Read up to 256 KiB from verified content while its download continues.
+
+##### Parameters
+
+###### params
+
+[`MsFileContentRangeParams`](../interfaces/MsFileContentRangeParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`MsFileContentRangeResult`](../interfaces/MsFileContentRangeResult.md)\>
 
 #### stat
 
@@ -549,3 +627,345 @@ Promise resolve 不等于已广播，应检查返回状态。
 #### Returns
 
 `Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
+
+## Properties
+
+### domain
+
+> `readonly` **domain**: `object`
+
+#### profile
+
+> **profile**: (`publicKeyHex`, `options?`) => `Promise`\<[`DomainProfile`](../interfaces/DomainProfile.md)\>
+
+Read the primary domain's public profile for one public key.
+
+##### Parameters
+
+###### publicKeyHex
+
+`string`
+
+###### options?
+
+[`DomainQueryOptions`](../interfaces/DomainQueryOptions.md)
+
+##### Returns
+
+`Promise`\<[`DomainProfile`](../interfaces/DomainProfile.md)\>
+
+#### profiles
+
+> **profiles**: (`publicKeys`, `__namedParameters`) => `Promise`\<[`DomainProfilesResult`](../interfaces/DomainProfilesResult.md)\>
+
+Read public profiles in input order, with per-key errors.
+
+##### Parameters
+
+###### publicKeys
+
+`string`[]
+
+###### \_\_namedParameters?
+
+[`DomainQueryOptions`](../interfaces/DomainQueryOptions.md) = `{}`
+
+##### Returns
+
+`Promise`\<[`DomainProfilesResult`](../interfaces/DomainProfilesResult.md)\>
+
+#### getPublicKey
+
+> **getPublicKey**: (`domain`, `__namedParameters`) => `Promise`\<`string`\>
+
+Read the current owner's compressed public key for a domain.
+
+##### Parameters
+
+###### domain
+
+`string`
+
+###### \_\_namedParameters?
+
+[`DomainQueryOptions`](../interfaces/DomainQueryOptions.md) = `{}`
+
+##### Returns
+
+`Promise`\<`string`\>
+
+***
+
+### payment
+
+> `readonly` **payment**: `object`
+
+按原业务 ID 只读查询付款状态，不自动重付或更换 ID。
+
+#### prepare
+
+> **prepare**: (`params`, `options?`) => `Promise`\<[`PaymentPrepareResult`](../type-aliases/PaymentPrepareResult.md)\>
+
+##### Parameters
+
+###### params
+
+[`PaymentPrepareParams`](../interfaces/PaymentPrepareParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`PaymentPrepareResult`](../type-aliases/PaymentPrepareResult.md)\>
+
+#### commit
+
+> **commit**: (`params`, `options?`) => `Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
+
+##### Parameters
+
+###### params
+
+[`PaymentCommitParams`](../interfaces/PaymentCommitParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
+
+#### cancel
+
+> **cancel**: (`params`, `options?`) => `Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
+
+##### Parameters
+
+###### params
+
+[`PaymentReservationParams`](../interfaces/PaymentReservationParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
+
+#### status
+
+> **status**: (`params`, `options?`) => `Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
+
+##### Parameters
+
+###### params
+
+[`PaymentStatusParams`](../interfaces/PaymentStatusParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`PaymentPayResult`](../interfaces/PaymentPayResult.md)\>
+
+***
+
+### chain
+
+> `readonly` **chain**: `object`
+
+#### getHeight
+
+> **getHeight**: (`options?`) => `Promise`\<[`ChainHeightResult`](../interfaces/ChainHeightResult.md)\>
+
+一次性读取钱包已同步的链尖高度和区块哈希。
+
+##### Parameters
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`ChainHeightResult`](../interfaces/ChainHeightResult.md)\>
+
+#### subscribeHeight
+
+> **subscribeHeight**: (`handler`) => () => `void`
+
+接收已有链尖及后续高度或哈希变化，返回退订函数。
+
+##### Parameters
+
+###### handler
+
+(`height`) => `void`
+
+##### Returns
+
+() => `void`
+
+#### listScriptHistory
+
+> **listScriptHistory**: (`params`, `options?`) => `Promise`\<[`ChainScriptHistoryResult`](../interfaces/ChainScriptHistoryResult.md)\>
+
+##### Parameters
+
+###### params
+
+[`ChainScriptHistoryParams`](../type-aliases/ChainScriptHistoryParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`ChainScriptHistoryResult`](../interfaces/ChainScriptHistoryResult.md)\>
+
+#### getTransaction
+
+> **getTransaction**: (`txid`, `options?`) => `Promise`\<[`ChainTransactionResult`](../type-aliases/ChainTransactionResult.md)\>
+
+##### Parameters
+
+###### txid
+
+`string`
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md) & `object`
+
+##### Returns
+
+`Promise`\<[`ChainTransactionResult`](../type-aliases/ChainTransactionResult.md)\>
+
+#### getTransactions
+
+> **getTransactions**: (`params`, `options?`) => `Promise`\<[`ChainTransactionBatchResult`](../interfaces/ChainTransactionBatchResult.md)\>
+
+Observe up to 20 transactions with optional raw bytes and no block position lookup.
+
+##### Parameters
+
+###### params
+
+[`ChainTransactionBatchParams`](../type-aliases/ChainTransactionBatchParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`ChainTransactionBatchResult`](../interfaces/ChainTransactionBatchResult.md)\>
+
+#### listScriptUnspent
+
+> **listScriptUnspent**: (`script`, `options?`) => `Promise`\<\{ `outputs`: [`ChainOutpoint`](../interfaces/ChainOutpoint.md) & `object`[]; \}\>
+
+##### Parameters
+
+###### script
+
+`string`
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<\{ `outputs`: [`ChainOutpoint`](../interfaces/ChainOutpoint.md) & `object`[]; \}\>
+
+#### broadcast
+
+> **broadcast**: (`rawTxHex`, `options?`) => `Promise`\<[`ChainBroadcastResult`](../interfaces/ChainBroadcastResult.md)\>
+
+##### Parameters
+
+###### rawTxHex
+
+`string`
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<[`ChainBroadcastResult`](../interfaces/ChainBroadcastResult.md)\>
+
+***
+
+### application
+
+> `readonly` **application**: `object`
+
+#### getPublicKey
+
+> **getPublicKey**: (`purpose`, `options?`) => `Promise`\<\{ `publicKeyHex`: `string`; \}\>
+
+##### Parameters
+
+###### purpose
+
+`string`
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<\{ `publicKeyHex`: `string`; \}\>
+
+#### signMessage
+
+> **signMessage**: (`params`, `options?`) => `Promise`\<\{ `publicKeyHex`: `string`; `signature`: [`BinaryField`](../interfaces/BinaryField.md); \}\>
+
+##### Parameters
+
+###### params
+
+###### purpose
+
+`string`
+
+###### message
+
+[`BinaryField`](../interfaces/BinaryField.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<\{ `publicKeyHex`: `string`; `signature`: [`BinaryField`](../interfaces/BinaryField.md); \}\>
+
+#### signPayment
+
+> **signPayment**: (`params`, `options?`) => `Promise`\<\{ `rawTxHex`: `string`; \}\>
+
+##### Parameters
+
+###### params
+
+[`ApplicationPaymentParams`](../interfaces/ApplicationPaymentParams.md)
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<\{ `rawTxHex`: `string`; \}\>

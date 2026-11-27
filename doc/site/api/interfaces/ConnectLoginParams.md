@@ -6,11 +6,20 @@
 
 | Property | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
+| [`loginChallenge?`](#loginchallenge) | `string` | No | One-time challenge issued by the application backend (32 bytes, lowercase hex). |
 | [`text`](#text) | `string` | Yes | 人类可读确认文案。 |
 | [`claims?`](#claims) | `string`[] | No | 请求索要的 claim 名列表（与 `identity.get` 同语义）。 |
 | [`publicationProof?`](#publicationproof) | `string` | No | App 入口的发布来源证明记录字符串（`base64url(规范JSON).签名hex`）。 |
 
 ## Properties
+
+### loginChallenge?
+
+> `optional` **loginChallenge?**: `string`
+
+One-time challenge issued by the application backend (32 bytes, lowercase hex).
+
+***
 
 ### text
 
