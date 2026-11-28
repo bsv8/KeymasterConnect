@@ -746,6 +746,31 @@ export function parseRequestMessage(raw: unknown, receiverIdentity: NetworkIdent
             normalized = { ...validatePaymentStatusParams({ clientRequestId: params.clientRequestId }), offset, length };
             break;
         }
+        case "msfile.streamseed.follow": {
+            keys(params, ["clientRequestId", "streamId", "enabled", "mode"]);
+            if (typeof params.enabled !== "boolean" || (params.mode !== "live" && params.mode !== "replay")) {
+                throw new ProtocolValidationError("invalid_request", "Invalid StreamSeed follow parameters");
+            }
+            normalized = {
+                ...validatePaymentStatusParams({ clientRequestId: params.clientRequestId }),
+                streamId: msfileHash(params.streamId, "streamId"),
+                enabled: params.enabled,
+                mode: params.mode,
+            };
+            break;
+        }
+        case "msfile.streamseed.read": {
+            keys(params, ["clientRequestId", "nodeId", "blockOffset", "length"]);
+            const { nodeId, blockOffset, length } = params;
+            if (typeof nodeId !== "string" || !/^(0|[1-9][0-9]{0,19})$/u.test(nodeId) || BigInt(nodeId) > 0xffffffffffffffffn ||
+                typeof blockOffset !== "number" || !Number.isSafeInteger(blockOffset) || blockOffset < 0 ||
+                typeof length !== "number" || !Number.isSafeInteger(length) || length < 0 || length > 256 * 1024 ||
+                !Number.isSafeInteger(blockOffset + length)) {
+                throw new ProtocolValidationError("invalid_request", "Invalid StreamSeed node or byte range");
+            }
+            normalized = { ...validatePaymentStatusParams({ clientRequestId: params.clientRequestId }), nodeId, blockOffset, length };
+            break;
+        }
         case "domain.profiles": normalized = validateDomainProfilesParams(params); break;
         case "domain.get_public_key":
             normalized = { domain: expectString(params.domain, "domain"), serviceId: domainServiceID(params, "domain") };

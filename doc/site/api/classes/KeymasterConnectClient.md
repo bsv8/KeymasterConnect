@@ -284,7 +284,7 @@ inference.
 
 ##### M
 
-`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.prepare"` \| `"payment.commit"` \| `"payment.cancel"` \| `"chain.get_height"` \| `"chain.list_script_history"` \| `"chain.get_transaction"` \| `"chain.get_transactions"` \| `"chain.list_script_unspent"` \| `"chain.broadcast"` \| `"application.key"` \| `"application.sign_message"` \| `"application.sign_payment"` \| `"msfile.seller.status"` \| `"msfile.import"` \| `"msfile.content.read"` \| `"msfile.content.status"` \| `"msfile.content.open"` \| `"msfile.content.price"` \| `"msfile.content.range"` \| `"domain.profiles"` \| `"domain.get_public_key"` \| `"connect.login"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
+`M` *extends* `"identity.get"` \| `"intent.sign"` \| `"cipher.encrypt"` \| `"cipher.decrypt"` \| `"payment.pay"` \| `"payment.status"` \| `"payment.prepare"` \| `"payment.commit"` \| `"payment.cancel"` \| `"chain.get_height"` \| `"chain.list_script_history"` \| `"chain.get_transaction"` \| `"chain.get_transactions"` \| `"chain.list_script_unspent"` \| `"chain.broadcast"` \| `"application.key"` \| `"application.sign_message"` \| `"application.sign_payment"` \| `"msfile.seller.status"` \| `"msfile.import"` \| `"msfile.content.read"` \| `"msfile.content.status"` \| `"msfile.content.open"` \| `"msfile.content.price"` \| `"msfile.content.range"` \| `"msfile.streamseed.follow"` \| `"msfile.streamseed.read"` \| `"domain.profiles"` \| `"domain.get_public_key"` \| `"connect.login"` \| `"connect.logout"` \| `"connect.launch"` \| `"channel.publish"` \| `"channel.subscription_set"` \| `"msfile.stat"` \| `"msfile.seed.read"` \| `"msfile.block.read"`
 
 #### Parameters
 
@@ -542,6 +542,70 @@ Read up to 256 KiB from verified content while its download continues.
 ##### Returns
 
 `Promise`\<[`MsFileContentRangeResult`](../interfaces/MsFileContentRangeResult.md)\>
+
+#### followStream
+
+> **followStream**: (`params`, `options?`) => `Promise`\<\{ `followed`: `boolean`; `firstNodeId`: `string`; \}\>
+
+##### Parameters
+
+###### params
+
+###### clientRequestId
+
+`string`
+
+###### streamId
+
+`string`
+
+###### enabled
+
+`boolean`
+
+###### mode
+
+`"live"` \| `"replay"`
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<\{ `followed`: `boolean`; `firstNodeId`: `string`; \}\>
+
+#### readStream
+
+> **readStream**: (`params`, `options?`) => `Promise`\<\{ `status`: `"pending"` \| `"stopped"`; \} \| \{ `status`: `"end"`; `nodeId`: `string`; \} \| \{ `status`: `"available"`; `nodeId`: `string`; `blockLengths`: `number`[]; `content`: [`BinaryField`](../interfaces/BinaryField.md); \}\>
+
+##### Parameters
+
+###### params
+
+###### clientRequestId
+
+`string`
+
+###### nodeId
+
+`string`
+
+###### blockOffset
+
+`number`
+
+###### length
+
+`number`
+
+###### options?
+
+[`KeymasterRequestOptions`](../interfaces/KeymasterRequestOptions.md)
+
+##### Returns
+
+`Promise`\<\{ `status`: `"pending"` \| `"stopped"`; \} \| \{ `status`: `"end"`; `nodeId`: `string`; \} \| \{ `status`: `"available"`; `nodeId`: `string`; `blockLengths`: `number`[]; `content`: [`BinaryField`](../interfaces/BinaryField.md); \}\>
 
 #### stat
 

@@ -31,6 +31,8 @@
 | [`msfile.content.open`](#msfilecontentopen) | [`MsFileReadStatus`](../type-aliases/MsFileReadStatus.md) | Yes | — |
 | [`msfile.content.price`](#msfilecontentprice) | [`MsFileDownloadPriceResult`](MsFileDownloadPriceResult.md) | Yes | — |
 | [`msfile.content.range`](#msfilecontentrange) | [`MsFileContentRangeResult`](MsFileContentRangeResult.md) | Yes | — |
+| [`msfile.streamseed.follow`](#msfilestreamseedfollow) | `object` | Yes | — |
+| [`msfile.streamseed.read`](#msfilestreamseedread) | \{ `status`: `"pending"` \| `"stopped"`; \} \| \{ `status`: `"end"`; `nodeId`: `string`; \} \| \{ `status`: `"available"`; `nodeId`: `string`; `blockLengths`: `number`[]; `content`: [`BinaryField`](BinaryField.md); \} | Yes | — |
 | [`domain.profiles`](#domainprofiles) | [`DomainProfilesResult`](DomainProfilesResult.md) | Yes | — |
 | [`domain.get_public_key`](#domainget-public-key) | `object` | Yes | — |
 | [`connect.login`](#connectlogin) | [`ConnectLoginResult`](ConnectLoginResult.md) | Yes | — |
@@ -219,6 +221,26 @@
 ### msfile.content.range
 
 > **msfile.content.range**: [`MsFileContentRangeResult`](MsFileContentRangeResult.md)
+
+***
+
+### msfile.streamseed.follow
+
+> **msfile.streamseed.follow**: `object`
+
+#### followed
+
+> **followed**: `boolean`
+
+#### firstNodeId
+
+> **firstNodeId**: `string`
+
+***
+
+### msfile.streamseed.read
+
+> **msfile.streamseed.read**: \{ `status`: `"pending"` \| `"stopped"`; \} \| \{ `status`: `"end"`; `nodeId`: `string`; \} \| \{ `status`: `"available"`; `nodeId`: `string`; `blockLengths`: `number`[]; `content`: [`BinaryField`](BinaryField.md); \}
 
 ***
 

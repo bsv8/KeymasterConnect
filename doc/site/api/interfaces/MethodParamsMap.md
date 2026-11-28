@@ -34,6 +34,8 @@
 | [`msfile.content.open`](#msfilecontentopen) | [`MsFileContentOpenParams`](../type-aliases/MsFileContentOpenParams.md) | Yes | — |
 | [`msfile.content.price`](#msfilecontentprice) | [`MsFileDownloadPriceParams`](MsFileDownloadPriceParams.md) | Yes | — |
 | [`msfile.content.range`](#msfilecontentrange) | [`MsFileContentRangeParams`](MsFileContentRangeParams.md) | Yes | — |
+| [`msfile.streamseed.follow`](#msfilestreamseedfollow) | `object` | Yes | — |
+| [`msfile.streamseed.read`](#msfilestreamseedread) | `object` | Yes | — |
 | [`domain.profiles`](#domainprofiles) | [`DomainProfilesParams`](DomainProfilesParams.md) | Yes | — |
 | [`domain.get_public_key`](#domainget-public-key) | [`DomainGetPublicKeyParams`](DomainGetPublicKeyParams.md) | Yes | — |
 | [`connect.login`](#connectlogin) | [`ConnectLoginParams`](ConnectLoginParams.md) | Yes | — |
@@ -222,6 +224,50 @@
 ### msfile.content.range
 
 > **msfile.content.range**: [`MsFileContentRangeParams`](MsFileContentRangeParams.md)
+
+***
+
+### msfile.streamseed.follow
+
+> **msfile.streamseed.follow**: `object`
+
+#### clientRequestId
+
+> **clientRequestId**: `string`
+
+#### streamId
+
+> **streamId**: `string`
+
+#### enabled
+
+> **enabled**: `boolean`
+
+#### mode
+
+> **mode**: `"live"` \| `"replay"`
+
+***
+
+### msfile.streamseed.read
+
+> **msfile.streamseed.read**: `object`
+
+#### clientRequestId
+
+> **clientRequestId**: `string`
+
+#### nodeId
+
+> **nodeId**: `string`
+
+#### blockOffset
+
+> **blockOffset**: `number`
+
+#### length
+
+> **length**: `number`
 
 ***
 

@@ -710,6 +710,8 @@ export const PROTOCOL_METHODS = [
     "msfile.content.open",
     "msfile.content.price",
     "msfile.content.range",
+    "msfile.streamseed.follow",
+    "msfile.streamseed.read",
     "domain.profiles",
     "domain.get_public_key",
     "connect.login",
@@ -757,6 +759,18 @@ export interface MethodParamsMap {
     "msfile.content.open": MsFileContentOpenParams;
     "msfile.content.price": MsFileDownloadPriceParams;
     "msfile.content.range": MsFileContentRangeParams;
+    "msfile.streamseed.follow": {
+        clientRequestId: string;
+        streamId: string;
+        enabled: boolean;
+        mode: "live" | "replay";
+    };
+    "msfile.streamseed.read": {
+        clientRequestId: string;
+        nodeId: string;
+        blockOffset: number;
+        length: number;
+    };
     "domain.profiles": DomainProfilesParams;
     "domain.get_public_key": DomainGetPublicKeyParams;
     "connect.login": ConnectLoginParams;
@@ -794,6 +808,11 @@ export interface MethodResultMap {
     "msfile.content.open": MsFileReadStatus;
     "msfile.content.price": MsFileDownloadPriceResult;
     "msfile.content.range": MsFileContentRangeResult;
+    "msfile.streamseed.follow": { followed: boolean; firstNodeId: string };
+    "msfile.streamseed.read":
+        | { status: "pending" | "stopped" }
+        | { status: "end"; nodeId: string }
+        | { status: "available"; nodeId: string; blockLengths: number[]; content: BinaryField };
     "domain.profiles": DomainProfilesResult;
     "domain.get_public_key": { publicKeyHex: string };
     "connect.login": ConnectLoginResult;

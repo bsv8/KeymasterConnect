@@ -539,6 +539,10 @@ export class KeymasterConnectClient {
     /** Read up to 256 KiB from verified content while its download continues. */
     readRange: (params: MethodParams<"msfile.content.range">, options?: KeymasterRequestOptions) =>
       this.request("msfile.content.range", params, { ...options, timeoutMs: options?.timeoutMs ?? 65_000 }),
+    followStream: (params: MethodParams<"msfile.streamseed.follow">, options?: KeymasterRequestOptions) =>
+      this.request("msfile.streamseed.follow", params, options),
+    readStream: (params: MethodParams<"msfile.streamseed.read">, options?: KeymasterRequestOptions) =>
+      this.request("msfile.streamseed.read", params, options),
     /** Check availability in the wallet and at its configured suppliers. */
     stat: (params: MsFileStatParams, options?: KeymasterRequestOptions): Promise<MsFileStatResult> =>
       this.request("msfile.stat", params, options),

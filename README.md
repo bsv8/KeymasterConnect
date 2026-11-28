@@ -2,10 +2,10 @@
 
 Keymaster Connect v1 的独立生产协议栈，包含 Client、公开契约和 Receiver，不依赖钱包源码或 WebLoom。
 
-无 scope 的 `keymaster-connect`，本包版本为 **0.4.0**，包含完整应用发布证明、带挑战码的显式登录／启动、链尖订阅与批量交易查询、可恢复 MSFile 读取；wire 始终保持 v1。安装：
+无 scope 的 `keymaster-connect`，本包版本为 **0.5.0**，包含完整应用发布证明、带挑战码的显式登录／启动、链尖订阅与批量交易查询、可恢复 MSFile 读取及 StreamSeed 直播跟随与节点读取；wire 始终保持 v1。安装：
 
 ```sh
-pnpm add --save-exact keymaster-connect@0.4.0
+pnpm add --save-exact keymaster-connect@0.5.0
 ```
 
 支持钱包内嵌 iframe、钱包打开 App（appView）和 App 主动打开完整钱包（popup，默认）。App 主动连接打开完整钱包根页面 `/`，不打开独立协议页；错误和超时不关闭钱包窗口。完整说明见 [App 主动打开钱包](doc/site/concepts/popup-mode.md)。
@@ -99,3 +99,9 @@ Version `0.4.0` supports resumable reads. Save a `clientRequestId` before callin
 `msfile.readRange({ clientRequestId, offset, length })` reads verified ranges while the complete file is still pending.
 
 `msfile.downloadPrice()` reads the wallet's maximum manual full-block price. Pass `maxFullBlockPriceSatoshis` to `openContent` to choose the new download's initial full-block price ceiling. The app may call `downloadPrice({ clientRequestId, maxFullBlockPriceSatoshis })` for a running download that it was authorized to adjust. Seed prices follow the wallet's existing rules.
+
+## StreamSeed live follow
+
+`msfile.streamseed.follow({ clientRequestId, streamId, enabled, mode })` starts, queries or stops following a track. Keep a stable request ID per page and track; `mode` selects `live` or `replay`. The result reports whether the wallet follows the stream and the first playable node ID (`"0"`). Reconnecting with the same request ID and node IDs continues the original follow; different pages hold independent requests.
+
+`msfile.streamseed.read({ clientRequestId, nodeId, blockOffset, length })` reads one verified node. Results report `pending`, `available` (node type, media block lengths and the requested bytes), `end` for the END node, or `stopped` when the follow is no longer active. Node IDs are decimal strings; one range is limited to 256 KiB.
